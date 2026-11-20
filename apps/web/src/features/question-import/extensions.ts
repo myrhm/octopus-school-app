@@ -1,5 +1,6 @@
 import StarterKit from '@tiptap/starter-kit';
 import { QuestionBlock, QuestionDocument } from './document';
+import { OptionAnchor } from './answer-options';
 
 export function questionExtensions() {
   return [
@@ -14,5 +15,6 @@ export function questionExtensions() {
     }),
     QuestionDocument,
     QuestionBlock,
+    OptionAnchor,
   ];
 }
