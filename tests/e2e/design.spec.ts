@@ -1,6 +1,32 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
+test('uses one full-size theme control with a visible keyboard focus ring', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/');
+  const theme = page.getByRole('combobox', { name: 'Tema tampilan' });
+  const control = theme.locator('..');
+  const selectBox = await theme.boundingBox();
+  const controlBox = await control.boundingBox();
+  expect(selectBox).not.toBeNull();
+  expect(controlBox).not.toBeNull();
+  expect(selectBox!.width).toBeCloseTo(controlBox!.width, 0);
+  expect(selectBox!.height).toBeCloseTo(controlBox!.height, 0);
+  await page.keyboard.press('Tab');
+  for (
+    let step = 0;
+    step < 12 && !(await theme.evaluate((element) => element === document.activeElement));
+    step++
+  ) {
+    await page.keyboard.press('Tab');
+  }
+  await expect(theme).toBeFocused();
+  await expect(theme).toHaveCSS('outline-style', 'solid');
+  await expect(theme).toHaveCSS('outline-width', '3px');
+  await control.screenshot({ path: testInfo.outputPath('theme-control-focused.png') });
+});
+
 test('follows the system theme and persists an explicit choice', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('/');

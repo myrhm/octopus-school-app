@@ -45,3 +45,11 @@ Pemeriksaan Chromium dan emulasi mobile tidak membuktikan penerimaan perangkat f
 - Tangkapan layar ringkasan light/dark dan bank soal mobile diperiksa untuk proporsi logo, keterbacaan, dan pemenggalan layout. Hash ketiga aset produksi identik dengan salinan sumber.
 
 Hasil di atas merupakan verifikasi lokal Windows. CI GitHub dan deployment belum dijalankan untuk perubahan tahap 2.
+
+## Audit UX pemilih tema
+
+Audit singkat menemukan border pada pembungkus kontrol, tetapi outline fokus hanya pada select di dalamnya. Perbedaan batas tersebut membuat kontrol terlihat bertumpuk dan area ikon tidak menjadi bagian select yang utuh.
+
+Border, radius, dan padding kini berada pada select yang memenuhi seluruh kontrol. Ikon dan chevron diposisikan sebagai dekorasi tanpa menangkap pointer. Outline keyboard tetap mengelilingi kontrol penuh. Kontrol input dan dialog lain sudah memiliki batas fokus yang sesuai dan tidak memerlukan perubahan dalam audit ini.
+
+Verifikasi perbaikan: `pnpm check` lulus dan E2E menjadi 27 lulus dengan satu skip khusus desktop. Test tambahan memeriksa ukuran select terhadap kontrol pembungkus serta outline yang terlihat saat fokus keyboard pada desktop dan mobile.
