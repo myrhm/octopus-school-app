@@ -3,13 +3,24 @@ import { emptyDocument } from './document';
 
 export interface LocalDraft {
   id: string;
-  formatVersion: 1;
+  formatVersion: 1 | 2;
   title: string;
   document: JSONContent;
   questionCount: number;
   revision: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export const currentDraftFormatVersion = 2 as const;
+export function isSupportedDraftVersion(version: unknown): version is LocalDraft['formatVersion'] {
+  return version === 1 || version === currentDraftFormatVersion;
+}
+
+/** Read-only migration; preserve the stored revision and content until the next save. */
+export function upgradeDraft(draft: LocalDraft): LocalDraft {
+  if (!isSupportedDraftVersion(draft.formatVersion)) throw new Error('Versi draft belum didukung.');
+  return { ...draft, formatVersion: currentDraftFormatVersion };
 }
 
 function openDatabase(): Promise<IDBDatabase> {
@@ -60,6 +71,7 @@ export class DraftConflict extends Error {
 }
 
 export async function saveDraft(draft: LocalDraft): Promise<LocalDraft> {
+  const upgraded = upgradeDraft(draft);
   const db = await openDatabase();
   try {
     return await new Promise((resolve, reject) => {
@@ -67,9 +79,19 @@ export async function saveDraft(draft: LocalDraft): Promise<LocalDraft> {
       const store = tx.objectStore('drafts');
       const existing = store.get(draft.id);
       let conflict = false;
-      const saved = { ...draft, revision: draft.revision + 1, updatedAt: new Date().toISOString() };
+      let unsupported = false;
+      const saved = {
+        ...upgraded,
+        revision: draft.revision + 1,
+        updatedAt: new Date().toISOString(),
+      };
       existing.onsuccess = () => {
         const previous = existing.result as LocalDraft | undefined;
+        if (previous && !isSupportedDraftVersion(previous.formatVersion)) {
+          unsupported = true;
+          tx.abort();
+          return;
+        }
         if ((previous?.revision ?? 0) !== draft.revision) {
           conflict = true;
           tx.abort();
@@ -80,9 +102,11 @@ export async function saveDraft(draft: LocalDraft): Promise<LocalDraft> {
       tx.oncomplete = () => resolve(saved);
       tx.onabort = tx.onerror = () =>
         reject(
-          conflict
-            ? new DraftConflict()
-            : new Error('Draft belum tersimpan. Coba lagi atau unduh salinannya.'),
+          unsupported
+            ? new Error('Versi draft tersimpan belum didukung. Data tidak diubah.')
+            : conflict
+              ? new DraftConflict()
+              : new Error('Draft belum tersimpan. Coba lagi atau unduh salinannya.'),
         );
     });
   } finally {
@@ -94,7 +118,7 @@ export async function createDraft() {
   const now = new Date().toISOString();
   return saveDraft({
     id: crypto.randomUUID(),
-    formatVersion: 1,
+    formatVersion: currentDraftFormatVersion,
     title: 'Impor soal baru',
     document: emptyDocument(),
     questionCount: 1,

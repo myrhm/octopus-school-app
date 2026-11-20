@@ -14,8 +14,16 @@ import {
   addQuestion,
   cursorOnDelimiter,
 } from './document';
-import { createDraftWriter, DraftConflict } from './draft-store';
+import {
+  createDraftWriter,
+  DraftConflict,
+  isSupportedDraftVersion,
+  upgradeDraft,
+} from './draft-store';
 import type { LocalDraft } from './draft-store';
+import { extractOptions } from './answer-options';
+import AnswerOptionsPanel from './AnswerOptionsPanel';
+import type { Transaction } from '@tiptap/pm/state';
 
 export default function QuestionWorkspace(props: { draft: LocalDraft }) {
   let host!: HTMLDivElement;
@@ -47,6 +55,25 @@ export default function QuestionWorkspace(props: { draft: LocalDraft }) {
     version();
     return editor()?.can().redo() ?? false;
   };
+  const canExtract = () => {
+    const value = state();
+    return Boolean(value && !value.selection.empty);
+  };
+
+  function applyOption(
+    result: { transaction: Transaction } | { error: string },
+    focusEditor = true,
+  ) {
+    if ('error' in result) {
+      setMessage(result.error);
+      return;
+    }
+    const instance = editor();
+    if (!instance) return;
+    instance.view.dispatch(result.transaction);
+    if (focusEditor) instance.view.focus();
+    setMessage('Pilihan jawaban diperbarui. Perubahan dapat diurungkan.');
+  }
 
   function persist(instance = editor()) {
     if (!instance || !writer) return;
@@ -98,11 +125,12 @@ export default function QuestionWorkspace(props: { draft: LocalDraft }) {
   onMount(() => {
     draft = props.draft;
     setTitle(draft.title);
-    if (draft.formatVersion !== 1) {
+    if (!isSupportedDraftVersion(draft.formatVersion)) {
       setLoadError('Versi draft belum didukung. Salinan tersimpan tidak diubah.');
       return;
     }
     try {
+      draft = upgradeDraft(draft);
       validateDocument(getSchema(questionExtensions()), draft.document);
       const instance = new Editor({
         element: host,
@@ -340,6 +368,33 @@ export default function QuestionWorkspace(props: { draft: LocalDraft }) {
             Daftar poin
           </Button>
         </div>
+        <div class="option-extraction-toolbar" role="group" aria-label="Ekstraksi pilihan jawaban">
+          <Button
+            variant="secondary"
+            disabled={!canExtract()}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => {
+              const instance = editor();
+              if (instance) applyOption(extractOptions(instance.state));
+            }}
+          >
+            Jadikan opsi
+          </Button>
+          <Button
+            variant="secondary"
+            disabled={!canExtract()}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => {
+              const instance = editor();
+              if (instance) applyOption(extractOptions(instance.state, true));
+            }}
+          >
+            Ekstrak beberapa opsi
+          </Button>
+          <span class="field-hint">
+            Seleksi teks jawaban di dalam satu soal. Label A/B/C mengikuti urutan opsi.
+          </span>
+        </div>
         <p class="field-hint import-help">
           Ctrl/Cmd + Enter langsung membuat soal berikutnya, termasuk di akhir teks. Ketik %%% pada
           baris tersendiri untuk langsung membuka soal baru. Untuk dokumen yang ditempel, gunakan
@@ -348,7 +403,10 @@ export default function QuestionWorkspace(props: { draft: LocalDraft }) {
         <p class="import-feedback" role="status" aria-live="polite">
           {message()}
         </p>
-        <div ref={host} />
+        <div class="import-editing-layout">
+          <div ref={host} />
+          <AnswerOptionsPanel state={state} apply={applyOption} />
+        </div>
       </Show>
     </section>
   );
