@@ -31,8 +31,8 @@ export default function SettingsPage() {
             <Brand />
           </div>
           <p class="field-hint">
-            Ini adalah pratinjau antarmuka. Akun sekolah, penyimpanan soal, dan penyelenggaraan
-            ujian belum tersedia.
+            Draft soal tersimpan di browser ini. Akun sekolah, penyimpanan server, dan
+            penyelenggaraan ujian belum tersedia.
           </p>
         </Modal>
       </section>

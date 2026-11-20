@@ -15,7 +15,12 @@ function Navigation(props: { onNavigate?: () => void }) {
     <nav aria-label="Navigasi utama" class="sidebar-nav">
       <For each={navigation}>
         {(item) => (
-          <A href={item.href} end activeClass="is-active" onClick={() => props.onNavigate?.()}>
+          <A
+            href={item.href}
+            end={item.href === '/'}
+            activeClass="is-active"
+            onClick={() => props.onNavigate?.()}
+          >
             <Dynamic component={item.icon} size={20} aria-hidden="true" />
             {item.label}
           </A>
@@ -35,12 +40,20 @@ export default function AppShell(props: ParentProps) {
   desktopMedia.addEventListener('change', closeDesktopMenu);
   onCleanup(() => desktopMedia.removeEventListener('change', closeDesktopMenu));
   createEffect(() => {
-    const page = navigation.find((item) => item.href === location.pathname);
+    const page = navigation.find(
+      (item) =>
+        item.href === location.pathname ||
+        (item.href !== '/' && location.pathname.startsWith(`${item.href}/`)),
+    );
     document.title = page ? `${page.label} · Octopus` : 'Octopus';
     setMenuOpen(false);
   });
   const pageLabel = () =>
-    navigation.find((item) => item.href === location.pathname)?.label ?? 'Octopus';
+    navigation.find(
+      (item) =>
+        item.href === location.pathname ||
+        (item.href !== '/' && location.pathname.startsWith(`${item.href}/`)),
+    )?.label ?? 'Octopus';
   return (
     <div class="app-shell">
       <a class="skip-link" href="#main-content">

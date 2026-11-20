@@ -1,4 +1,5 @@
 @import '@fontsource-variable/plus-jakarta-sans';
+@import '@fontsource-variable/plus-jakarta-sans/wght-italic.css';
 @import 'tailwindcss';
 
 @theme inline {
@@ -585,9 +586,7 @@ main {
   text-decoration: none;
   background: var(--primary);
   color: var(--on-primary);
-  transition:
-    background-color 150ms,
-    border-color 150ms;
+  transition: border-color 150ms;
 }
 .button:not(:disabled):hover {
   background: var(--primary-hover);
@@ -926,5 +925,178 @@ main {
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Local question import */
+.local-draft-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  background: var(--info-soft);
+  color: var(--info-text);
+  padding: 18px 22px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+.local-draft-note p {
+  max-width: 700px;
+  font-size: 0.875rem;
+}
+.draft-list {
+  display: grid;
+  gap: 16px;
+  list-style: none;
+  margin: 24px 0 0;
+  padding: 0;
+}
+.draft-list-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.draft-list-item h2 {
+  margin-block: 12px 8px;
+  overflow-wrap: anywhere;
+}
+.import-page > .text-link {
+  display: inline-block;
+  margin-bottom: 24px;
+}
+.import-title {
+  max-width: 680px;
+  margin-bottom: 20px;
+}
+.import-meta {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin: 20px 0;
+}
+.import-toolbar,
+.format-toolbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 14px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface);
+  border-radius: 12px;
+}
+.format-toolbar {
+  margin-top: 12px;
+  padding: 6px 12px;
+}
+.format-toolbar [aria-pressed='true'] {
+  background: var(--primary-soft);
+  color: var(--primary-text);
+}
+.import-help {
+  margin-top: 16px;
+}
+.import-feedback {
+  color: var(--info-text);
+  font-size: 0.875rem;
+  min-height: 24px;
+  margin: 8px 0;
+}
+.save-error {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 16px 0;
+}
+.save-error .button {
+  margin-top: 12px;
+}
+.question-editor {
+  counter-reset: question;
+  outline: none;
+}
+.question-card {
+  counter-increment: question;
+  border: 1px solid var(--control-border);
+  border-radius: 14px;
+  margin: 16px 0;
+  background: var(--surface);
+  padding: 24px;
+}
+.question-card::before {
+  content: 'Soal ' counter(question);
+  display: block;
+  font-size: 0.875rem;
+  color: var(--primary-text);
+  font-weight: 700;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 16px;
+  user-select: none;
+}
+.question-editor:focus-visible .question-card:has(.ProseMirror-selectednode) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.question-editor:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 4px;
+  border-radius: 14px;
+}
+.question-content {
+  min-height: 100px;
+  font-size: 1.125rem;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.question-content p {
+  margin-block: 10px;
+  min-height: 1.7em;
+}
+.question-content ul {
+  list-style: disc;
+  padding-left: 28px;
+}
+.question-content ol {
+  list-style: decimal;
+  padding-left: 28px;
+}
+.question-content h2,
+.question-content h3 {
+  margin-block: 16px 8px;
+}
+.question-content blockquote {
+  border-left: 3px solid var(--control-border);
+  padding-left: 16px;
+}
+.question-content strong {
+  font-weight: 700;
+}
+.question-content em {
+  font-style: italic;
+}
+.question-content p:only-child:has(br.ProseMirror-trailingBreak)::before {
+  content: 'Tempel atau tulis soal di sini…';
+  color: var(--text-muted);
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+@media (max-width: 767px) {
+  .question-card {
+    padding: 20px;
+  }
+  .import-toolbar .button {
+    flex: 1 1 140px;
+  }
+  .import-page .page-heading {
+    margin-top: 8px;
   }
 }
