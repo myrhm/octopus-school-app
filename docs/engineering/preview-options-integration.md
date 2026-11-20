@@ -2,6 +2,8 @@
 
 Branch lokal `integration/student-preview-options` menggabungkan PR #3 (`40580b5`) dan PR #4 terbaru (`7f14cce`) dengan merge commit. Branch utama dan kedua branch fitur tetap terpisah. Ini lingkungan uji integrasi, bukan persetujuan merge.
 
+Setelah PR #4 di-merge ke `main` (`db0f60a`), branch `feat/student-question-preview` diperbarui dari main dengan merge commit. Commit penghubung, dukungan versi draft, dan sinkronisasi fokus tes dipindahkan dari branch integrasi ke PR #3. Fitur preview sekarang terhubung ke opsi asli pada branch PR #3; branch tersebut belum di-merge ke main.
+
 ## Alur data
 
 `loadDraft` → `validateDocument` dengan schema editor → `question-import/question-contract.toStudentQuestions` → `copyStudentQuestions` → `StudentPreview`.
@@ -15,7 +17,7 @@ Bank Soal → Pratinjau siswa kini menampilkan opsi asli sesuai urutan tersimpan
 - PR #4 telah menambahkan perbaikan versi draft (`eed7ae1`) dan konteks daftar (`7f14cce`), termasuk tes regresi. Keduanya ikut digabung ke lingkungan ini.
 - Guard versi memakai `isSupportedDraftVersion` dari modul storage: versi 1 legacy dan versi 2 diterima; versi lain ditolak. Membuka preview tidak menyimpan migrasi, menulis draft, atau mengubah revision. Save editor memakai versi 2.
 - Gunakan origin pengujian terpisah pada port 5185. Draft pada port lain tidak ikut tersedia karena IndexedDB terikat origin.
-- Setelah hasil integrasi ditinjau, commit penghubung dapat dipindahkan ke PR #3 setelah dependency PR #4 masuk sesuai persetujuan pengguna. Tidak perlu membawa merge integrasi sementara ke main.
+- Commit penghubung sudah dipindahkan ke PR #3 setelah dependency PR #4 masuk ke main. Merge integrasi sementara tidak dibawa ke main; PR #3 tetap memerlukan review sebelum merge.
 
 ## Verifikasi
 
