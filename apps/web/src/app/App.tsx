@@ -7,6 +7,7 @@ import SettingsPage from '../routes/SettingsPage';
 import UpcomingPage from '../routes/UpcomingPage';
 import ComponentsPage from '../routes/ComponentsPage';
 import { ThemeProvider } from './theme';
+import QuestionImportPage from '../routes/QuestionImportPage';
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
       <Router root={AppShell}>
         <Route path="/" component={OverviewPage} />
         <Route path="/bank-soal" component={QuestionBankPage} />
+        <Route path="/bank-soal/impor/:id" component={QuestionImportPage} />
         <Route path="/ujian" component={UpcomingPage} />
         <Route path="/monitoring" component={UpcomingPage} />
         <Route path="/nilai" component={UpcomingPage} />

@@ -99,14 +99,12 @@ test('keeps field errors associated and checkbox operable by keyboard', async ({
   await expect(checkbox).toBeChecked();
 });
 
-test('resets question bank filters without offering unavailable actions', async ({ page }) => {
+test('resets the local draft search', async ({ page }) => {
   await page.goto('/bank-soal');
-  await page.getByRole('searchbox', { name: 'Cari bank soal' }).fill('Matematika');
-  await page.getByRole('checkbox', { name: 'Hanya milik saya' }).check();
+  await page.getByRole('searchbox', { name: 'Cari draft soal' }).fill('Matematika');
   await page.getByRole('button', { name: 'Reset filter' }).click();
-  await expect(page.getByRole('searchbox', { name: 'Cari bank soal' })).toHaveValue('');
-  await expect(page.getByRole('checkbox', { name: 'Hanya milik saya' })).not.toBeChecked();
-  await expect(page.getByRole('button', { name: 'Impor soal' })).toBeDisabled();
+  await expect(page.getByRole('searchbox', { name: 'Cari draft soal' })).toHaveValue('');
+  await expect(page.getByRole('button', { name: 'Impor soal' })).toBeEnabled();
 });
 
 test('opens the mobile menu, contains focus, and closes after navigation', async ({
@@ -146,6 +144,8 @@ for (const theme of ['light', 'dark'] as const) {
       expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
     }
     await page.getByRole('button', { name: 'Tentang Octopus' }).click();
+    await expect(page.locator('.modal-content')).toHaveCSS('opacity', '1');
+    await expect(page.locator('.modal-overlay')).toHaveCSS('opacity', '1');
     const modalResults = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
       .analyze();
@@ -153,6 +153,7 @@ for (const theme of ['light', 'dark'] as const) {
     await page.keyboard.press('Escape');
     if (await page.getByRole('button', { name: 'Buka navigasi' }).isVisible()) {
       await page.getByRole('button', { name: 'Buka navigasi' }).click();
+      await expect(page.locator('.modal-overlay')).toHaveCSS('opacity', '1');
       const menuResults = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
         .analyze();

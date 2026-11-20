@@ -2,7 +2,7 @@
 
 Platform ujian sekolah untuk menyusun soal dari dokumen, menyelenggarakan ujian, mengoreksi jawaban, dan mengevaluasi hasil belajar.
 
-Fondasi web dan desain sudah tersedia: pnpm workspace, SolidJS + TypeScript + Vite, Tailwind, logo Octopus, tema terang/gelap/sistem, layout responsif, komponen dasar, serta lint dan testing. Fitur soal, akun, dan ujian belum diimplementasikan.
+Fondasi web dan editor impor lokal sudah tersedia. Dari Bank Soal, pilih **Impor soal**, tempel dokumen, pisahkan/gabungkan soal, lalu gunakan undo/redo sesuai kebutuhan. Draft otomatis tersimpan di IndexedDB browser dan dapat dilanjutkan setelah reload. Akun, backend, kunci jawaban, upload media, dan penyelenggaraan ujian belum diimplementasikan.
 
 ## Menjalankan proyek
 
@@ -36,6 +36,8 @@ docs/                  Spesifikasi, aset sumber, dan panduan engineering
 ```
 
 Panduan batas modul dan toolchain tersedia di [fondasi engineering](docs/engineering/foundation.md). Implementasi tema, komponen, dan batas pratinjau dijelaskan di [fondasi desain](docs/engineering/design-foundation.md).
+
+Alur editor dan batas penyimpanan browser dijelaskan di [impor soal lokal](docs/engineering/local-question-import.md).
 
 ## Spesifikasi
 

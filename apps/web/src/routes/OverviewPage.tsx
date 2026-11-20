@@ -73,8 +73,8 @@ export default function OverviewPage() {
       <div class="preview-note">
         <span class="note-dot" aria-hidden="true" />
         <p>
-          Anda sedang melihat pratinjau Octopus. Pengelolaan soal, akun sekolah, dan ujian belum
-          tersedia.
+          Impor dan susun draft soal sudah dapat dicoba secara lokal. Akun sekolah dan
+          penyelenggaraan ujian belum tersedia.
         </p>
       </div>
     </section>

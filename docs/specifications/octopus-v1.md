@@ -59,8 +59,8 @@ Wizard non-linear memiliki tiga tahap: **Susun soal, Tambahkan media, Tinjau dan
 - Paste awal menjadi satu draft; simpan representasi sumber untuk recovery.
 - Pertahankan paragraf, line break, bold, italic, underline, daftar, Unicode, dan simbol sejauh format editor mendukungnya. Sanitasi konten aktif.
 - Gambar clipboard diterima jika browser menyediakan data yang dapat diekstrak. Jika tidak, teks tetap dipertahankan dan tersedia upload manual.
-- Delimiter `%%%` hanya berlaku pada baris tersendiri, dengan whitespace di sekitarnya diabaikan. Pemisahan tidak menghasilkan draft kosong tanpa peringatan.
-- Split pada kursor mempertahankan isi sebelum/sesudah, formatting, urutan, dan fokus. Elemen kompleks yang tidak aman dibelah meminta batas paragraf.
+- Delimiter `%%%` hanya berlaku pada baris tersendiri, dengan whitespace di sekitarnya diabaikan. Sesuai revisi UX 21 November 2026, delimiter yang diketik langsung membuka soal berikutnya; soal kosong diperbolehkan selama penyusunan draft. Enter dan Shift+Enter sama-sama dikenali sebagai batas baris.
+- Split pada kursor mempertahankan isi sebelum/sesudah, formatting, dan urutan, lalu memindahkan fokus ke soal berikutnya. Ctrl/Cmd + Enter pada akhir teks atau draft kosong langsung membuat soal baru yang dapat dilengkapi. Elemen kompleks yang tidak aman dibelah meminta batas paragraf.
 - Merge sebelumnya/berikutnya mempertahankan seluruh isi, opsi, dan referensi media. Konflik kunci ditandai untuk ditinjau.
 - Deteksi nomor soal dan opsi menghasilkan `matched`, `ambiguous`, atau `unmatched`; pengguna melihat preview sebelum menerapkan. Nomor daftar dalam pertanyaan tidak otomatis menjadi batas soal.
 
