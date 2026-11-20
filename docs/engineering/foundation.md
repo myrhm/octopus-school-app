@@ -10,9 +10,9 @@ Tahap 1 tersedia secara lokal: workspace pnpm, SolidJS SPA, TypeScript strict, r
 - `packages/config`: konfigurasi TypeScript yang dipakai aplikasi melalui dependency `workspace:*`.
 - `tests/e2e`: smoke tests terhadap build produksi melalui Vite preview.
 
-Package domain, impor, API, dan UI ditambahkan ketika mempunyai implementasi konkret. Package bersama tidak boleh mengimpor aplikasi. Routing sementara hanya mencakup ringkasan, bank soal, dan halaman tidak ditemukan; halaman bank soal menjelaskan bahwa fiturnya belum tersedia.
+Package domain, impor, API, dan UI bersama ditambahkan ketika diperlukan. Package bersama tidak boleh mengimpor aplikasi. Tahap 2 menambahkan halaman pengaturan, referensi komponen, serta placeholder ujian/monitoring/nilai; bank soal menjelaskan bahwa fitur penyimpanan belum tersedia.
 
-CSS dasar memakai keluarga warna logo. Pemasangan aset logo produksi, Tailwind, komponen UI, serta tema light/dark masuk tahap desain dasar berikutnya. Editor dan SDK backend belum dipasang.
+Fondasi desain kini memakai Tailwind, logo sumber, komponen dasar, serta tema light/dark/sistem. Detailnya tercatat di [fondasi desain](design-foundation.md). Editor dan SDK backend belum dipasang.
 
 ## Toolchain dan reproduksibilitas
 
@@ -26,11 +26,11 @@ Dokumentasi acuan setup: [Vite](https://vite.dev/guide/), [Solid Router](https:/
 
 ## Pemeriksaan
 
-`pnpm check` berhenti pada pemeriksaan pertama yang gagal. Typecheck mencakup aplikasi dan konfigurasi browser tests. Vitest menguji navigasi, browser history, direct entry, dan fallback 404. jsdom tidak menyediakan scrolling; hanya API tersebut yang dimock pada component tests.
+`pnpm check` berhenti pada pemeriksaan pertama yang gagal. Typecheck mencakup aplikasi dan konfigurasi browser tests. Vitest menguji navigasi, browser history, direct entry, dan fallback 404. Component tests memakai stub scrolling dan media query karena jsdom tidak mengimplementasikan kedua API browser tersebut.
 
 `pnpm test:e2e` menguji navigasi, refresh deep link, browser back, recovery dari URL salah, runtime errors, dan overflow halaman pada Chromium desktop serta emulasi Pixel 7. Pengujian ini bukan bukti dukungan perangkat Android fisik atau seluruh browser.
 
-CI memuat install, format/lint/typecheck, tests, build, dan E2E pada Linux. Workflow ini belum dianggap berhasil berjalan di GitHub sampai repository terhubung dan run aktual tersedia. Folder kerja pada saat setup belum memiliki `.git`; setup ini tidak membuat remote atau menerbitkan kode.
+CI memuat install, format/lint/typecheck, tests, build, dan E2E pada Linux. Repository sudah terhubung ke GitHub setelah fondasi awal di-push. Hasil lokal tidak dianggap sebagai bukti keberhasilan workflow CI atau deployment.
 
 ## Environment dan deployment
 
@@ -40,9 +40,9 @@ Vite preview mendukung fallback SPA untuk pengujian lokal. Konfigurasi rewrite p
 
 ## Langkah berikutnya
 
-Tahap 2: logo, token desain light/dark, Tailwind, komponen UI aksesibel, serta layout dashboard. Setelah itu, backend awal menyediakan Auth, sekolah/membership, bank soal, draft, Storage, dan RLS sebelum fitur impor disambungkan ke penyimpanan resmi.
+Setelah fondasi desain tahap 2, backend awal menyediakan Auth, sekolah/membership, bank soal, draft, Storage, dan RLS sebelum fitur impor disambungkan ke penyimpanan resmi.
 
-## Verifikasi lokal pada 20 November 2026
+## Verifikasi lokal tahap 1 pada 20 November 2026
 
 - `pnpm install --frozen-lockfile --offline`: berhasil menggunakan cache instalasi.
 - `pnpm check`: format, lint, typecheck, tiga component test, dan build produksi lulus.
