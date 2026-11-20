@@ -11,10 +11,25 @@ Editor awal menyediakan alur dokumen → draft soal tanpa backend. Pilih **Impor
 - Merge dengan soal sebelumnya/berikutnya, tanpa menghilangkan urutan isi.
 - Undo/redo teks dan perubahan struktur dalam satu history editor. Satu split/merge menjadi satu operasi undo.
 - Autosave lokal, daftar draft, pencarian judul, reload/resume, dan unduhan JSON berisi salinan draft terkini.
+- Seleksi teks menjadi satu atau beberapa opsi, pengurutan naik/turun, pemilihan satu kunci berdasarkan ID, serta pengembalian opsi ke teks soal. Seluruh operasi mengikuti undo/redo editor.
 
 Soal kosong diperbolehkan selama penyusunan draft dan dapat dilengkapi kemudian. Delimiter tunggal maupun berurutan menghasilkan kartu soal yang dapat diedit. Jika draft lama masih berisi baris delimiter, Enter atau Ctrl/Cmd + Enter di baris itu akan mengonsumsinya menjadi batas soal. Split di tengah daftar atau elemen yang tidak aman tetap meminta pengguna memilih paragraf biasa. Nomor soal asli tidak dihapus otomatis. Label urutan kartu dikelola terpisah dari teks asli.
 
-Gambar, tabel, ekstraksi opsi, kunci jawaban, penilaian, dan publikasi belum tersedia. Jika clipboard membawa gambar, editor menyatakan keterbatasannya dan tetap mengambil teks yang didukung. Tidak ada AI, parser dokumen berbayar, atau request penyimpanan ke server.
+Gambar, tabel, penilaian, dan publikasi belum tersedia. Jika clipboard membawa gambar, editor menyatakan keterbatasannya dan tetap mengambil teks yang didukung. Tidak ada AI, parser dokumen berbayar, atau request penyimpanan ke server.
+
+## Ekstraksi dan pengaturan opsi
+
+Seleksi hanya teks jawaban dalam satu soal, lalu pilih **Jadikan opsi**. Untuk beberapa opsi sekaligus, seleksi baris berlabel berurutan seperti A., B), (C), atau huruf kecil, lalu pilih **Ekstrak beberapa opsi**. Paragraf lanjutan tetap menjadi bagian opsi sebelumnya. Baris Shift+Enter dikenali. Jika label tidak berurutan atau seleksi ambigu, editor menjelaskan fallback ekstraksi satu per satu dan tidak mengubah konten.
+
+Konten dipindahkan dari pertanyaan ke attrs opsi sebagai blok rich text; label sumber dihapus hanya dari tampilan opsi. Anchor internal mengikuti lokasi sumber di dokumen agar **Kembalikan ke soal** memulihkan slice beserta label/format asal. Jika pengguna menghapus anchor ketika mengedit badan soal, isi opsi tetap tersimpan dan pengembalian memakai akhir soal. Opsi dapat diedit dengan mengembalikannya ke badan soal, memperbaiki teks, lalu mengekstraknya kembali.
+
+Urutan array menentukan label A/B/C. Kunci disimpan sebagai correctOptionId sehingga tetap benar saat urutan berubah. Mengembalikan opsi yang menjadi kunci mengosongkan kunci tersebut. Split/delimiter memindahkan opsi mengikuti anchor; opsi yang anchor-nya sudah dihapus tetap pada soal asal. Merge mempertahankan semua opsi. Jika dua soal memiliki kunci berbeda, editor menyimpan kandidat internal dan meminta guru memilih ulang, tanpa memilih salah satunya secara diam-diam.
+
+Panel menampilkan opsi untuk soal aktif. Tombol naik/turun, radio kunci, dan pengembalian dapat dipakai tanpa drag. Format ekstraksi, pengurutan, kunci, dan metadata pemulihan ikut tersimpan pada draft lokal. Draft lama tetap dibaca dengan options kosong dan correctOptionId null.
+
+Kontrak bersama pekerjaan preview tersedia di [kontrak soal v1](question-contract-v1.md). Preview memakai fixture/snapshot terpisah tanpa kunci atau metadata editor; pekerjaan akun 1 ini tidak menambahkan layar preview.
+
+Verifikasi ekstraksi opsi pada 21 November 2026: `pnpm check` lulus (format, lint, typecheck, 23 unit/component test, build). `pnpm test:e2e` lulus 53 skenario dengan satu skip khusus mobile pada konfigurasi desktop. Kasus tambahan mencakup seleksi parsial, label ambigu, opsi multibaris, source anchor yang terhapus, split/merge berkunci, snapshot siswa tanpa kunci, reorder, reload, pengembalian opsi, serta aksesibilitas kedua tema dan viewport mobile.
 
 ## Model dan batas modul
 
