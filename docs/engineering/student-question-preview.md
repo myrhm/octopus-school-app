@@ -21,12 +21,12 @@ interface PreviewSourceQuestion {
 - `toStudentQuestions` memproyeksikan field tampilan secara eksplisit dan menyalin rich-text. Kunci dan atribut lain tidak diteruskan ke komponen. ID duplikat, kunci tidak valid, dan konten yang belum didukung ditolak.
 - Komponen `StudentPreview` hanya menerima `StudentQuestion[]` tanpa field kunci. Jawaban percobaan berada di memori komponen, dipetakan dari ID soal ke ID opsi. Tidak menulis IndexedDB, tidak memberi skor, dan direset saat keluar/reload.
 
-Kontrak ini adalah boundary UI, bukan keputusan format penyimpanan. Akun 1 memiliki schema editor, serialisasi opsi, migrasi, history, dan autosave. Saat integrasi, ubah adapter `load-preview.ts` agar memetakan struktur editor final menjadi kontrak di atas lalu memanggil `toStudentQuestions`. Jangan meneruskan draft/objek guru mentah ke UI siswa. Tidak perlu mengubah `StudentPreview.tsx` untuk mengintegrasikan opsi.
+Kontrak ini adalah boundary UI, bukan keputusan format penyimpanan. Akun 1 memiliki schema editor, serialisasi opsi, migrasi, history, dan autosave. Pada branch integrasi, `load-preview.ts` memvalidasi dokumen lalu memakai proyeksi siswa kanonis dari modul `question-import/question-contract.ts`, dilanjutkan validasi tampilan `copyStudentQuestions`. Tipe guru dan opsi menggunakan alias kontrak kanonis. Objek guru mentah tidak diteruskan ke komponen siswa. Lihat [catatan integrasi sementara](preview-options-integration.md) untuk batas versi dan temuan review yang masih terbuka.
 
 ## Alur
 
 - Bank Soal → **Contoh pratinjau siswa** (`/pratinjau-siswa/contoh`): fixture eksplisit berisi dua soal pilihan ganda dan satu soal tanpa opsi. Tidak membuat draft atau memerlukan IndexedDB.
-- Bank Soal → **Pratinjau siswa** pada draft: membaca snapshot terakhir yang tersimpan. Adapter saat ini mendukung format draft teks versi 1 di `main`; opsi belum diekstrak di baseline ini. Format baru harus diintegrasikan oleh adapter, bukan diabaikan diam-diam.
+- Bank Soal → **Pratinjau siswa** pada draft: membaca snapshot terakhir yang tersimpan, termasuk opsi asli dan urutannya dari PR #4. Draft teks legacy tetap didukung. Format penyimpanan tak dikenal ditolak; guard versi harus disesuaikan setelah migrasi akun 1 selesai.
 - Tampilan terpisah dari sidebar guru, memakai tema dan identitas Octopus yang sama. Pilihan radio native mendukung keyboard. Klik isi pilihan memilih radio.
 - Navigasi sebelumnya/berikutnya atau nomor soal mempertahankan pilihan sementara dan memindahkan fokus ke judul soal. Navigator mobile dapat dibuka/tutup; kontrol tidak menutupi isi soal.
 - Soal kosong/tanpa opsi ditandai jelas. Draft hilang, format tidak didukung, dan storage error tidak diganti dengan data contoh.

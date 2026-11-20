@@ -1,17 +1,9 @@
 import type { JSONContent } from '@tiptap/core';
+import type { QuestionOptionV1, QuestionV1 } from '../question-import/question-contract';
 
 // Shared boundary with answer extraction; persistence is owned by the editor.
-export interface QuestionOption {
-  id: string;
-  content: JSONContent[];
-}
-
-export interface PreviewSourceQuestion {
-  id: string;
-  content: JSONContent[];
-  options: QuestionOption[];
-  correctOptionId: string | null;
-}
+export type QuestionOption = QuestionOptionV1;
+export type PreviewSourceQuestion = QuestionV1;
 
 export interface StudentQuestion {
   readonly id: string;
@@ -54,6 +46,19 @@ export function copyRichText(content: readonly JSONContent[]): JSONContent[] {
 }
 
 export function toStudentQuestions(source: readonly PreviewSourceQuestion[]): StudentQuestion[] {
+  const questions = copyStudentQuestions(source);
+  for (const question of source) {
+    if (
+      question.correctOptionId !== null &&
+      !question.options.some((option) => option.id === question.correctOptionId)
+    )
+      throw new Error('Invalid answer key');
+  }
+  return questions;
+}
+
+// Validate and sanitize the canonical student projection without reintroducing a key.
+export function copyStudentQuestions(source: readonly StudentQuestion[]): StudentQuestion[] {
   const questionIds = new Set<string>();
   return source.map((question) => {
     if (typeof question.id !== 'string' || !question.id || questionIds.has(question.id))
@@ -66,8 +71,6 @@ export function toStudentQuestions(source: readonly PreviewSourceQuestion[]): St
       optionIds.add(option.id);
       return { id: option.id, content: copyRichText(option.content) };
     });
-    if (question.correctOptionId !== null && !optionIds.has(question.correctOptionId))
-      throw new Error('Invalid answer key');
     return { id: question.id, content: copyRichText(question.content), options };
   });
 }
