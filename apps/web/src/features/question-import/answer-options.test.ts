@@ -7,6 +7,8 @@ import { extractOptions, moveOption, returnOption, setCorrectOption } from './an
 import { questionMetadataPlugin } from './option-model';
 import { mergeQuestion, splitAtCursor, validateDocument } from './document';
 import { readOptions, toStudentQuestions } from './question-contract';
+import { Schema } from '@tiptap/pm/model';
+import { createDraft, saveDraft } from './draft-store';
 
 const schema = getSchema(questionExtensions());
 function documentFor(lines: string[]) {
@@ -45,6 +47,33 @@ function apply(state: EditorState, result: ReturnType<typeof extractOptions>) {
 }
 
 describe('answer options', () => {
+  it('protects option-bearing records from the old schema after every anchor is removed', async () => {
+    let state = selectText(stateFor(['Question?', 'A. One', 'B. Two']), 'A. One', 'B. Two');
+    state = apply(state, extractOptions(state, true));
+    const key = readOptions(state.doc.firstChild!.attrs.options)[0]!.id;
+    state = apply(state, setCorrectOption(state, 'q1', key));
+    const anchors: number[] = [];
+    state.doc.descendants((node, position) => {
+      if (node.type.name === 'optionAnchor') anchors.push(position);
+    });
+    const tr = state.tr;
+    for (const position of anchors.reverse()) tr.delete(position, position + 1);
+    state = state.apply(tr);
+    const legacySchema = new Schema({
+      nodes: schema.spec.nodes
+        .remove('optionAnchor')
+        .update('question', { ...schema.nodes.question!.spec, attrs: { id: { default: null } } }),
+      marks: schema.spec.marks,
+    });
+    const legacyDocument = legacySchema.nodeFromJSON(state.doc.toJSON());
+    legacyDocument.check();
+    expect(legacyDocument.firstChild!.attrs.options).toBeUndefined(); // Reproduces the silent loss.
+    const saved = await saveDraft({ ...(await createDraft()), document: state.doc.toJSON() });
+    expect(saved.formatVersion).toBe(2); // Legacy clients reject before nodeFromJSON.
+    expect(saved.document.content![0]!.attrs!.correctOptionId).toBe(key);
+    expect(saved.document.content![0]!.attrs!.options).toHaveLength(2);
+  });
+
   it('moves only the selected text, preserves marks, and round trips through undo/redo', () => {
     let state = selectText(stateFor(['Before A. Jakarta after']), 'A. Jakarta');
     const original = state.doc;

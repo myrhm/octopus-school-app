@@ -42,3 +42,7 @@ Contoh fixture siswa:
 ```
 
 Fixture guru memiliki field tambahan `correctOptionId: "option-36"`. Tidak ada kunci di fixture siswa di atas. Kontrak v1 berfokus pada satu jawaban benar; multi-answer dan media di luar tahap ini.
+
+## Versi penyimpanan editor
+
+Record editor lokal kini memakai `formatVersion: 2`; kontrak publik pada dokumen ini tetap v1. Editor menerima record v1 untuk migrasi di memori dan menyimpannya sebagai v2 pada edit berikutnya. Adapter preview perlu menerima record v1/v2 serta memakai proyeksi kanonis tanpa kunci, anchor, dan metadata recovery. Guard v1 saja pada PR #3 perlu disesuaikan saat integrasi; perbaikan PR #4 tidak mengubah kode preview akun 2.

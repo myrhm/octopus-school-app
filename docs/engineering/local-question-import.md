@@ -39,7 +39,9 @@ Satu dokumen berisi satu atau lebih node question dengan ID stabil dan konten ri
 
 ## Penyimpanan dan recovery
 
-Database IndexedDB `octopus-local-drafts`, object store `drafts`, menyimpan formatVersion, ID, judul, dokumen, jumlah soal, revision, serta waktu pembuatan/perubahan. Format awal menggunakan versi 1. Dokumen divalidasi sebelum editor dibuka; draft yang tidak dapat dibaca tidak ditimpa dengan dokumen kosong.
+Database IndexedDB `octopus-local-drafts`, object store `drafts`, menyimpan formatVersion, ID, judul, dokumen, jumlah soal, revision, serta waktu pembuatan/perubahan. Draft baru dan semua save memakai formatVersion 2 untuk melindungi atribut opsi/kunci dari editor lama yang hanya menerima versi 1. Versi database IndexedDB tetap 1; versi format record berbeda dari versi database maupun kontrak publik soal v1.
+
+Draft versi 1 diterima dan dimigrasi di memori tanpa mengubah dokumen, revision, atau record tersimpan hanya karena dibuka. Edit berikutnya disimpan secara atomik sebagai versi 2 dengan revision check yang sama. Record dengan versi yang belum didukung ditolak dan tidak ditimpa, termasuk bila revision cocok. Dokumen divalidasi sebelum editor dibuka; draft yang tidak dapat dibaca tidak ditimpa dengan dokumen kosong.
 
 Satu writer menserialisasi save dan menggabungkan snapshot terbaru ketika perubahan datang cepat. Transaksi read-modify-write memeriksa revision sebelum menulis. Tab dengan revision lama menampilkan konflik dan tidak menimpa tab lain. Pengguna dapat mengunduh salinan perubahan yang belum tersimpan. Gagal simpan dipertahankan sebagai error terlihat dan dapat dicoba lagi jika bukan konflik.
 

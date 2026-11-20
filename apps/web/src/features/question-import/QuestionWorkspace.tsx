@@ -14,7 +14,12 @@ import {
   addQuestion,
   cursorOnDelimiter,
 } from './document';
-import { createDraftWriter, DraftConflict } from './draft-store';
+import {
+  createDraftWriter,
+  DraftConflict,
+  isSupportedDraftVersion,
+  upgradeDraft,
+} from './draft-store';
 import type { LocalDraft } from './draft-store';
 import { extractOptions } from './answer-options';
 import AnswerOptionsPanel from './AnswerOptionsPanel';
@@ -120,11 +125,12 @@ export default function QuestionWorkspace(props: { draft: LocalDraft }) {
   onMount(() => {
     draft = props.draft;
     setTitle(draft.title);
-    if (draft.formatVersion !== 1) {
+    if (!isSupportedDraftVersion(draft.formatVersion)) {
       setLoadError('Versi draft belum didukung. Salinan tersimpan tidak diubah.');
       return;
     }
     try {
+      draft = upgradeDraft(draft);
       validateDocument(getSchema(questionExtensions()), draft.document);
       const instance = new Editor({
         element: host,
