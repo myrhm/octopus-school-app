@@ -1,10 +1,12 @@
 import { Node as ExtensionNode, mergeAttributes } from '@tiptap/core';
 import type { Node, Schema } from '@tiptap/pm/model';
-import { Fragment } from '@tiptap/pm/model';
+import { Fragment, Slice } from '@tiptap/pm/model';
 import { canSplit } from '@tiptap/pm/transform';
-import { Plugin, TextSelection } from '@tiptap/pm/state';
+import { TextSelection } from '@tiptap/pm/state';
 import type { EditorState, Transaction } from '@tiptap/pm/state';
 import { closeHistory } from '@tiptap/pm/history';
+import { questionMetadataPlugin } from './option-model';
+import { readOptions } from './question-contract';
 
 export const QuestionDocument = ExtensionNode.create({
   name: 'doc',
@@ -17,25 +19,16 @@ export const QuestionBlock = ExtensionNode.create({
   content: 'block+',
   defining: true,
   addProseMirrorPlugins() {
-    return [
-      new Plugin({
-        appendTransaction(transactions, _old, state) {
-          if (!transactions.some((transaction) => transaction.docChanged)) return null;
-          const seen = new Set<string>();
-          const tr = state.tr;
-          state.doc.forEach((node, position) => {
-            const id = node.attrs.id as string | null;
-            if (!id || seen.has(id))
-              tr.setNodeMarkup(position, undefined, { ...node.attrs, id: crypto.randomUUID() });
-            seen.add(tr.doc.nodeAt(position)!.attrs.id as string);
-          });
-          return tr.docChanged ? tr : null;
-        },
-      }),
-    ];
+    return [questionMetadataPlugin()];
   },
   addAttributes() {
-    return { id: { default: null } };
+    return {
+      id: { default: null },
+      options: { default: [] },
+      correctOptionId: { default: null },
+      optionSources: { default: {} },
+      keyConflictIds: { default: [] },
+    };
   },
   parseHTML() {
     return [{ tag: 'section[data-question-id]' }];
@@ -201,7 +194,26 @@ export function mergeQuestion(state: EditorState, direction: 'previous' | 'next'
   const second = state.doc.child(firstIndex + 1);
   let start = 0;
   for (let index = 0; index < firstIndex; index++) start += state.doc.child(index).nodeSize;
-  const merged = first.copy(first.content.append(second.content));
+  const keys = [
+    ...new Set(
+      [
+        first.attrs.correctOptionId,
+        second.attrs.correctOptionId,
+        ...(first.attrs.keyConflictIds as string[]),
+        ...(second.attrs.keyConflictIds as string[]),
+      ].filter((id): id is string => typeof id === 'string'),
+    ),
+  ];
+  const merged = first.type.create(
+    {
+      ...first.attrs,
+      options: [...readOptions(first.attrs.options), ...readOptions(second.attrs.options)],
+      optionSources: { ...first.attrs.optionSources, ...second.attrs.optionSources },
+      correctOptionId: keys.length === 1 ? keys[0]! : null,
+      keyConflictIds: keys.length > 1 ? keys : [],
+    },
+    first.content.append(second.content),
+  );
   const tr = closeHistory(state.tr).replaceWith(
     start,
     start + first.nodeSize + second.nodeSize,
@@ -261,5 +273,45 @@ export function validateDocument(schema: Schema, value: unknown): Node {
   const doc = schema.nodeFromJSON(value);
   doc.check();
   if (doc.type.name !== 'doc') throw new Error('Invalid document');
+  const optionIds = new Set<string>();
+  doc.forEach((question) => {
+    if (!Array.isArray(question.attrs.options)) throw new Error('Invalid options');
+    const options = readOptions(question.attrs.options);
+    for (const option of options) {
+      if (
+        !option ||
+        typeof option.id !== 'string' ||
+        !option.id ||
+        optionIds.has(option.id) ||
+        !Array.isArray(option.content) ||
+        !option.content.length
+      )
+        throw new Error('Invalid option');
+      optionIds.add(option.id);
+      for (const value of option.content) {
+        const block = schema.nodeFromJSON(value);
+        block.check();
+        if (!block.isBlock || block.type.name === 'question')
+          throw new Error('Invalid option block');
+        block.descendants((node) => {
+          if (node.type.name === 'optionAnchor') throw new Error('Invalid option anchor');
+        });
+      }
+      if (question.attrs.optionSources[option.id])
+        Slice.fromJSON(schema, question.attrs.optionSources[option.id]);
+    }
+    if (
+      question.attrs.correctOptionId !== null &&
+      !options.some((option) => option.id === question.attrs.correctOptionId)
+    )
+      throw new Error('Invalid answer key');
+    if (
+      !Array.isArray(question.attrs.keyConflictIds) ||
+      question.attrs.keyConflictIds.some(
+        (id: unknown) => !options.some((option) => option.id === id),
+      )
+    )
+      throw new Error('Invalid key conflict');
+  });
   return doc;
 }
