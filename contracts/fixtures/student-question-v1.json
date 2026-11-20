@@ -1,0 +1,16 @@
+{
+  "id": "question-1",
+  "content": [
+    { "type": "paragraph", "content": [{ "type": "text", "text": "Berapa hasil 12 × 3?" }] }
+  ],
+  "options": [
+    {
+      "id": "option-24",
+      "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "24" }] }]
+    },
+    {
+      "id": "option-36",
+      "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "36" }] }]
+    }
+  ]
+}
