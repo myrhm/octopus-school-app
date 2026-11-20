@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+pnpm-lock.yaml
+playwright-report
+test-results
+docs/references/01-question-import.md
+docs/references/02-exam-management.md
+docs/references/03-technical-architecture.md

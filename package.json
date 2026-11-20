@@ -1,0 +1,35 @@
+{
+  "name": "octopus",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "packageManager": "pnpm@10.24.0",
+  "engines": {
+    "node": "^22.12.0 || ^24.0.0 || >=26.0.0",
+    "pnpm": ">=10 <11"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @octopus/web dev",
+    "build": "pnpm --filter @octopus/web build",
+    "preview": "pnpm --filter @octopus/web preview",
+    "typecheck": "tsc --noEmit && pnpm -r typecheck",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "pnpm --filter @octopus/web test",
+    "test:watch": "pnpm --filter @octopus/web test:watch",
+    "test:e2e": "playwright test",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@playwright/test": "1.65.1",
+    "@types/node": "22.20.5",
+    "eslint": "9.39.5",
+    "eslint-plugin-solid": "0.20.0",
+    "globals": "17.14.0",
+    "prettier": "3.10.1",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.46.4"
+  }
+}
