@@ -2,7 +2,7 @@
 
 Platform ujian sekolah untuk menyusun soal dari dokumen, menyelenggarakan ujian, mengoreksi jawaban, dan mengevaluasi hasil belajar.
 
-Fondasi web sudah tersedia: pnpm workspace, SolidJS + TypeScript + Vite, routing, lint/format, component tests, browser smoke tests, dan workflow CI. Fitur soal, akun, dan ujian belum diimplementasikan.
+Fondasi web dan desain sudah tersedia: pnpm workspace, SolidJS + TypeScript + Vite, Tailwind, logo Octopus, tema terang/gelap/sistem, layout responsif, komponen dasar, serta lint dan testing. Fitur soal, akun, dan ujian belum diimplementasikan.
 
 ## Menjalankan proyek
 
@@ -13,7 +13,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Buka http://127.0.0.1:5173. Halaman yang tersedia: `/`, `/bank-soal`, dan fallback 404.
+Buka http://127.0.0.1:5173. Halaman yang tersedia: ringkasan (`/`), bank soal (`/bank-soal`), dan pengaturan tampilan (`/pengaturan`). Halaman ujian, monitoring, serta nilai menampilkan informasi fitur yang akan datang. Referensi visual komponen tersedia di `/komponen`, terpisah dari navigasi guru.
 
 ```sh
 pnpm check
@@ -21,7 +21,7 @@ pnpm exec playwright install chromium
 pnpm test:e2e
 ```
 
-`pnpm check` menjalankan format check, lint, typecheck, component tests, dan build. E2E memakai hasil build melalui preview server di port 4173; jalankan `pnpm build` jika menjalankan E2E secara terpisah setelah perubahan kode.
+`pnpm check` menjalankan format check, lint, typecheck, component tests, dan build. E2E memakai hasil build melalui preview server di port 5174; jalankan `pnpm build` jika menjalankan E2E secara terpisah setelah perubahan kode.
 
 Perintah tambahan: `pnpm test:watch`, `pnpm format`, dan `pnpm preview`.
 
@@ -35,7 +35,7 @@ tests/e2e/             Browser smoke tests desktop dan mobile
 docs/                  Spesifikasi, aset sumber, dan panduan engineering
 ```
 
-Panduan batas modul, keputusan toolchain, dan rencana lanjutan tersedia di [fondasi engineering](docs/engineering/foundation.md).
+Panduan batas modul dan toolchain tersedia di [fondasi engineering](docs/engineering/foundation.md). Implementasi tema, komponen, dan batas pratinjau dijelaskan di [fondasi desain](docs/engineering/design-foundation.md).
 
 ## Spesifikasi
 

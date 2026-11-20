@@ -4,7 +4,7 @@ test('navigates, reloads a nested URL, and returns with browser history', async 
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
-  await expect(page).toHaveTitle('Octopus');
+  await expect(page).toHaveTitle('Ringkasan · Octopus');
   await page.getByRole('link', { name: 'Buka bank soal' }).click();
   await expect(page).toHaveURL(/\/bank-soal$/);
   await page.reload();
