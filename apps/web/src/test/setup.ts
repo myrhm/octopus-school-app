@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, vi } from 'vitest';
 import { cleanup } from '@solidjs/testing-library';
+import 'fake-indexeddb/auto';
 
 // jsdom does not implement scrolling; real scrolling is covered in browser tests.
 beforeEach(() => {
