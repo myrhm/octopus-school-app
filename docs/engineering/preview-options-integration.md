@@ -1,6 +1,6 @@
 # Integrasi sementara preview dan ekstraksi opsi
 
-Branch lokal `integration/student-preview-options` menggabungkan PR #3 (`40580b5`) dan PR #4 (`dd68e36`) dengan merge commit. Branch utama dan kedua branch fitur tetap terpisah. Ini lingkungan uji integrasi, bukan persetujuan merge.
+Branch lokal `integration/student-preview-options` menggabungkan PR #3 (`40580b5`) dan PR #4 terbaru (`7f14cce`) dengan merge commit. Branch utama dan kedua branch fitur tetap terpisah. Ini lingkungan uji integrasi, bukan persetujuan merge.
 
 ## Alur data
 
@@ -12,11 +12,13 @@ Bank Soal → Pratinjau siswa kini menampilkan opsi asli sesuai urutan tersimpan
 
 ## Batas sebelum merge
 
-- Dua temuan review PR #4 (kompatibilitas versi draft lama dan konteks daftar saat ekstraksi) masih menunggu perbaikan akun 1. Integrasi ini tidak menyatakan keduanya selesai.
-- Guard versi masih menerima versi 1 sesuai head PR #4 saat ini. Setelah migrasi versi penyimpanan tersedia, perbarui adapter dan tesnya mengikuti aturan final; jangan menerima versi tak dikenal secara otomatis.
-- Gunakan origin pengujian terpisah pada port 5185. Draft pada port lain tidak ikut tersedia karena IndexedDB terikat origin. Jangan memindahkan draft penting ke lingkungan ini sebelum perbaikan kompatibilitas selesai.
-- Setelah PR #4 diperbaiki, perbarui branch integrasi dan ulangi pemeriksaan sebelum memindahkan commit penghubung ke PR #3. Tidak perlu membawa merge integrasi sementara ke main.
+- PR #4 telah menambahkan perbaikan versi draft (`eed7ae1`) dan konteks daftar (`7f14cce`), termasuk tes regresi. Keduanya ikut digabung ke lingkungan ini.
+- Guard versi memakai `isSupportedDraftVersion` dari modul storage: versi 1 legacy dan versi 2 diterima; versi lain ditolak. Membuka preview tidak menyimpan migrasi, menulis draft, atau mengubah revision. Save editor memakai versi 2.
+- Gunakan origin pengujian terpisah pada port 5185. Draft pada port lain tidak ikut tersedia karena IndexedDB terikat origin.
+- Setelah hasil integrasi ditinjau, commit penghubung dapat dipindahkan ke PR #3 setelah dependency PR #4 masuk sesuai persetujuan pengguna. Tidak perlu membawa merge integrasi sementara ke main.
 
 ## Verifikasi
 
 `pnpm check`, lalu `pnpm test:e2e` setelah build. Tes tambahan memeriksa ekstraksi opsi asli, pilihan kunci, reorder berdasarkan ID, reload, rendering formatting di preview, tidak adanya kunci/metadata editor, pilihan percobaan, serta kesamaan seluruh draft dan revision sebelum/sesudah preview. Ada juga pengujian draft legacy, versi tak dikenal, dan kunci tidak valid tanpa perubahan storage.
+
+Hasil lokal 21 November 2026 setelah memasukkan PR #4 `7f14cce`: `pnpm check` lulus dengan 38 unit/component tests dan build; E2E 65 lulus, 1 skip mobile-only pada desktop. Tes delimiter lama kini menunggu fokus editor setelah redo sebelum mengetik, sesuai focus asynchronous Tiptap. Build masih memberi peringatan chunk utama sekitar 519 kB sebelum gzip.

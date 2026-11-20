@@ -1,5 +1,5 @@
 import { getSchema } from '@tiptap/core';
-import { loadDraft } from '../question-import/draft-store';
+import { isSupportedDraftVersion, loadDraft } from '../question-import/draft-store';
 import { validateDocument } from '../question-import/document';
 import { questionExtensions } from '../question-import/extensions';
 import { toStudentQuestions } from '../question-import/question-contract';
@@ -11,9 +11,9 @@ export async function loadPreview(id: string) {
     return { title: 'Lingkungan di sekitar kita', questions: exampleQuestions, example: true };
   const draft = await loadDraft(id);
   if (!draft) return undefined;
-  if (draft.formatVersion !== 1) throw new Error('Unsupported draft version');
+  if (!isSupportedDraftVersion(draft.formatVersion)) throw new Error('Unsupported draft version');
   // Normalize legacy defaults and validate editor data before dropping private fields.
-  // Keep this version guard until the extraction branch supplies its storage migration.
+  // Preview reads supported versions without persisting migrations or changing revisions.
   const document = validateDocument(getSchema(questionExtensions()), draft.document);
   return {
     title: draft.title,

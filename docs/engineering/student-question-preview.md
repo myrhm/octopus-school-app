@@ -26,7 +26,7 @@ Kontrak ini adalah boundary UI, bukan keputusan format penyimpanan. Akun 1 memil
 ## Alur
 
 - Bank Soal → **Contoh pratinjau siswa** (`/pratinjau-siswa/contoh`): fixture eksplisit berisi dua soal pilihan ganda dan satu soal tanpa opsi. Tidak membuat draft atau memerlukan IndexedDB.
-- Bank Soal → **Pratinjau siswa** pada draft: membaca snapshot terakhir yang tersimpan, termasuk opsi asli dan urutannya dari PR #4. Draft teks legacy tetap didukung. Format penyimpanan tak dikenal ditolak; guard versi harus disesuaikan setelah migrasi akun 1 selesai.
+- Bank Soal → **Pratinjau siswa** pada draft: membaca snapshot terakhir yang tersimpan, termasuk opsi asli dan urutannya dari PR #4. Draft versi 1 legacy dan versi 2 didukung melalui guard bersama modul storage. Format tak dikenal ditolak; preview tidak menulis migrasi kembali ke penyimpanan.
 - Tampilan terpisah dari sidebar guru, memakai tema dan identitas Octopus yang sama. Pilihan radio native mendukung keyboard. Klik isi pilihan memilih radio.
 - Navigasi sebelumnya/berikutnya atau nomor soal mempertahankan pilihan sementara dan memindahkan fokus ke judul soal. Navigator mobile dapat dibuka/tutup; kontrol tidak menutupi isi soal.
 - Soal kosong/tanpa opsi ditandai jelas. Draft hilang, format tidak didukung, dan storage error tidak diganti dengan data contoh.

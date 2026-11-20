@@ -4,22 +4,41 @@ import { EditorState, TextSelection } from '@tiptap/pm/state';
 import { questionExtensions } from '../question-import/extensions';
 import { questionMetadataPlugin } from '../question-import/option-model';
 import { extractOptions, moveOption, setCorrectOption } from '../question-import/answer-options';
-import { loadDraft, saveDraft } from '../question-import/draft-store';
+import { currentDraftFormatVersion, loadDraft, saveDraft } from '../question-import/draft-store';
 import type { LocalDraft } from '../question-import/draft-store';
 import type { JSONContent } from '@tiptap/core';
 import { loadPreview } from './load-preview';
 
-async function persist(document: JSONContent, formatVersion = 1) {
-  return saveDraft({
+async function persist(document: JSONContent, formatVersion: number = currentDraftFormatVersion) {
+  const saved = await saveDraft({
     id: crypto.randomUUID(),
-    formatVersion,
+    formatVersion: currentDraftFormatVersion,
     title: 'Integration',
     document,
     questionCount: document.content?.length ?? 0,
     revision: 0,
     createdAt: '2026-11-21T00:00:00Z',
     updatedAt: '2026-11-21T00:00:00Z',
-  } as LocalDraft);
+  });
+  if (formatVersion === currentDraftFormatVersion) return saved;
+  // Seed legacy/future records directly; the production writer correctly upgrades/rejects them.
+  const raw = { ...saved, formatVersion } as LocalDraft;
+  const db = await new Promise<IDBDatabase>((resolve, reject) => {
+    const request = indexedDB.open('octopus-local-drafts', 1);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction('drafts', 'readwrite');
+      tx.objectStore('drafts').put(raw);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } finally {
+    db.close();
+  }
+  return raw;
 }
 
 describe('saved option draft preview integration', () => {
@@ -53,6 +72,7 @@ describe('saved option draft preview integration', () => {
       state = state.apply(result.transaction);
     }
     const draft = await persist(state.doc.toJSON());
+    expect(draft.formatVersion).toBe(2);
     const before = await loadDraft(draft.id);
     const preview = await loadPreview(draft.id);
     expect(preview?.questions[0]?.options[0]?.id).toBe(id);
@@ -67,20 +87,26 @@ describe('saved option draft preview integration', () => {
     expect(await loadDraft(draft.id)).toEqual(before);
   });
 
-  it('normalizes legacy text-only drafts without writing defaults back', async () => {
-    const draft = await persist({
-      type: 'doc',
-      content: [
+  it.each([1, 2])(
+    'reads text-only v%s drafts without writing defaults or migrations back',
+    async (version) => {
+      const draft = await persist(
         {
-          type: 'question',
-          attrs: { id: 'old' },
-          content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Legacy' }] }],
+          type: 'doc',
+          content: [
+            {
+              type: 'question',
+              attrs: { id: 'old' },
+              content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Legacy' }] }],
+            },
+          ],
         },
-      ],
-    });
-    expect((await loadPreview(draft.id))?.questions[0]?.options).toEqual([]);
-    expect(await loadDraft(draft.id)).toEqual(draft);
-  });
+        version,
+      );
+      expect((await loadPreview(draft.id))?.questions[0]?.options).toEqual([]);
+      expect(await loadDraft(draft.id)).toEqual(draft);
+    },
+  );
 
   it('rejects unsupported versions and malformed keys without changing storage', async () => {
     const unsupported = await persist({ type: 'doc', content: [] }, 99);
