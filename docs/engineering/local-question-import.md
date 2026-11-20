@@ -83,3 +83,7 @@ menimpa record Sampah. Perubahan yang gagal disimpan tetap dapat diunduh dari ed
 Pemulihan menaikkan revisi dan mengembalikan record aktif format 2; tab lama harus
 membuka ulang draft. Kontrak konten soal v1 tidak berubah.
 
+Untuk menjalankan tes browser saat port preview dipakai, gunakan environment
+variable `OCTOPUS_E2E_PORT` (default `5174`), misalnya
+`$env:OCTOPUS_E2E_PORT='5184'; pnpm test:e2e` pada PowerShell.
+
