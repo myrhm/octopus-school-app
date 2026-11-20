@@ -38,10 +38,15 @@ export default function QuestionBankPage() {
           <h1 id="page-title">Bank soal</h1>
           <p class="intro">Mulai dari draft lokal, lalu susun pertanyaan dari dokumen Anda.</p>
         </div>
-        <Button onClick={() => void startImport()} disabled={creating()}>
-          <FileInput size={18} aria-hidden="true" />
-          {creating() ? 'Menyiapkan draft…' : 'Impor soal'}
-        </Button>
+        <div class="heading-actions">
+          <A class="button" data-variant="secondary" href="/pratinjau-siswa/contoh">
+            Contoh pratinjau siswa
+          </A>
+          <Button onClick={() => void startImport()} disabled={creating()}>
+            <FileInput size={18} aria-hidden="true" />
+            {creating() ? 'Menyiapkan draft…' : 'Impor soal'}
+          </Button>
+        </div>
       </div>
       <div class="local-draft-note">
         <p>
@@ -116,13 +121,18 @@ export default function QuestionBankPage() {
                         })}
                       </p>
                     </div>
-                    <A
-                      class="button"
-                      data-variant="secondary"
-                      href={`/bank-soal/impor/${draft.id}`}
-                    >
-                      Lanjutkan draft
-                    </A>
+                    <div class="draft-preview-actions">
+                      <A class="button" data-variant="ghost" href={`/pratinjau-siswa/${draft.id}`}>
+                        Pratinjau siswa
+                      </A>
+                      <A
+                        class="button"
+                        data-variant="secondary"
+                        href={`/bank-soal/impor/${draft.id}`}
+                      >
+                        Lanjutkan draft
+                      </A>
+                    </div>
                   </li>
                 )}
               </For>
