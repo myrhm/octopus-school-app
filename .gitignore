@@ -13,3 +13,4 @@ test-results/
 .DS_Store
 Thumbs.db
 .vercel/
+.pr3-review/

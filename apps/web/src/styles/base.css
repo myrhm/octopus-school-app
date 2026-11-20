@@ -1216,3 +1216,31 @@ main {
     position: static;
   }
 }
+
+/* Reversible draft removal */
+.draft-view-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.draft-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.trash-description {
+  margin-bottom: 20px;
+  max-width: 720px;
+}
+.trash-description p {
+  margin-top: 8px;
+}
+.draft-notice {
+  padding: 14px 18px;
+  border-radius: 10px;
+  background: var(--success-soft);
+  color: var(--success-text);
+  margin-bottom: 20px;
+  font-size: 0.875rem;
+}

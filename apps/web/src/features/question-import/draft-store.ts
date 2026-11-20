@@ -12,6 +12,17 @@ export interface LocalDraft {
   updatedAt: string;
 }
 
+/** Tombstones use a version rejected by older editors, which otherwise ignore deletion metadata. */
+export interface TrashedDraft extends Omit<LocalDraft, 'formatVersion'> {
+  formatVersion: 3;
+  deletedAt: string;
+  originalFormatVersion: LocalDraft['formatVersion'];
+}
+type StoredDraft = LocalDraft | TrashedDraft;
+function isTrashed(draft: StoredDraft): draft is TrashedDraft {
+  return draft.formatVersion === 3 && 'deletedAt' in draft && typeof draft.deletedAt === 'string';
+}
+
 export const currentDraftFormatVersion = 2 as const;
 export function isSupportedDraftVersion(version: unknown): version is LocalDraft['formatVersion'] {
   return version === 1 || version === currentDraftFormatVersion;
@@ -33,7 +44,7 @@ function openDatabase(): Promise<IDBDatabase> {
   });
 }
 
-export async function listDrafts(): Promise<LocalDraft[]> {
+async function listRecords(): Promise<StoredDraft[]> {
   const db = await openDatabase();
   try {
     return await new Promise((resolve, reject) => {
@@ -41,7 +52,7 @@ export async function listDrafts(): Promise<LocalDraft[]> {
       const request = tx.objectStore('drafts').getAll();
       tx.oncomplete = () =>
         resolve(
-          (request.result as LocalDraft[]).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+          (request.result as StoredDraft[]).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
         );
       tx.onabort = tx.onerror = () => reject(new Error('Daftar draft tidak dapat dibaca.'));
     });
@@ -50,13 +61,21 @@ export async function listDrafts(): Promise<LocalDraft[]> {
   }
 }
 
-export async function loadDraft(id: string): Promise<LocalDraft | undefined> {
+export async function listDrafts(): Promise<LocalDraft[]> {
+  return (await listRecords()).filter((draft): draft is LocalDraft => !isTrashed(draft));
+}
+
+export async function listTrashedDrafts(): Promise<TrashedDraft[]> {
+  return (await listRecords()).filter(isTrashed);
+}
+
+async function loadRecord(id: string): Promise<StoredDraft | undefined> {
   const db = await openDatabase();
   try {
     return await new Promise((resolve, reject) => {
       const tx = db.transaction('drafts', 'readonly');
       const request = tx.objectStore('drafts').get(id);
-      tx.oncomplete = () => resolve(request.result as LocalDraft | undefined);
+      tx.oncomplete = () => resolve(request.result as StoredDraft | undefined);
       tx.onabort = tx.onerror = () => reject(new Error('Draft tidak dapat dibaca.'));
     });
   } finally {
@@ -64,10 +83,89 @@ export async function loadDraft(id: string): Promise<LocalDraft | undefined> {
   }
 }
 
+export async function loadDraft(id: string): Promise<LocalDraft | undefined> {
+  const draft = await loadRecord(id);
+  return draft && !isTrashed(draft) ? draft : undefined;
+}
+
 export class DraftConflict extends Error {
-  constructor() {
-    super('Draft berubah di tab lain. Unduh salinan perubahan Anda sebelum membuka ulang draft.');
+  constructor(
+    message = 'Draft berubah di tab lain. Unduh salinan perubahan Anda sebelum membuka ulang draft.',
+  ) {
+    super(message);
   }
+}
+
+export class DraftInTrash extends DraftConflict {
+  constructor() {
+    super(
+      'Draft sudah dipindahkan ke Sampah. Perubahan tab ini belum tersimpan. Unduh salinannya atau pulihkan draft dari Bank soal, lalu buka ulang.',
+    );
+  }
+}
+
+async function changeTrashState(id: string, revision: number, restore: boolean): Promise<void> {
+  const db = await openDatabase();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction('drafts', 'readwrite');
+      const store = tx.objectStore('drafts');
+      const request = store.get(id);
+      let failure: Error | undefined;
+      request.onsuccess = () => {
+        const previous = request.result as StoredDraft | undefined;
+        if (!previous) failure = new Error('Draft tidak ditemukan. Muat ulang daftar.');
+        else if (previous.revision !== revision)
+          failure = new DraftConflict(
+            'Draft berubah di tab lain. Muat ulang daftar sebelum mencoba lagi.',
+          );
+        else if (restore && !isTrashed(previous))
+          failure = new Error('Draft ini sudah berada di daftar aktif.');
+        else if (!restore && isTrashed(previous)) failure = new DraftInTrash();
+        else if (restore && isTrashed(previous)) {
+          if (!isSupportedDraftVersion(previous.originalFormatVersion))
+            failure = new Error('Versi draft belum didukung. Data tidak diubah.');
+          else {
+            store.put({
+              id: previous.id,
+              title: previous.title,
+              document: previous.document,
+              questionCount: previous.questionCount,
+              createdAt: previous.createdAt,
+              formatVersion: currentDraftFormatVersion,
+              revision: revision + 1,
+              updatedAt: new Date().toISOString(),
+            });
+          }
+        } else if (!isSupportedDraftVersion(previous.formatVersion))
+          failure = new Error('Versi draft belum didukung. Data tidak diubah.');
+        else {
+          const now = new Date().toISOString();
+          store.put({
+            ...previous,
+            formatVersion: 3,
+            originalFormatVersion: previous.formatVersion,
+            deletedAt: now,
+            revision: revision + 1,
+            updatedAt: now,
+          });
+        }
+        if (failure) tx.abort();
+      };
+      tx.oncomplete = () => resolve();
+      tx.onabort = tx.onerror = () =>
+        reject(failure ?? new Error('Perubahan belum tersimpan. Coba lagi.'));
+    });
+  } finally {
+    db.close();
+  }
+}
+
+export function moveDraftToTrash(id: string, revision: number) {
+  return changeTrashState(id, revision, false);
+}
+export function restoreDraft(id: string, revision: number) {
+  return changeTrashState(id, revision, true);
 }
 
 export async function saveDraft(draft: LocalDraft): Promise<LocalDraft> {
@@ -80,13 +178,19 @@ export async function saveDraft(draft: LocalDraft): Promise<LocalDraft> {
       const existing = store.get(draft.id);
       let conflict = false;
       let unsupported = false;
+      let trashed = false;
       const saved = {
         ...upgraded,
         revision: draft.revision + 1,
         updatedAt: new Date().toISOString(),
       };
       existing.onsuccess = () => {
-        const previous = existing.result as LocalDraft | undefined;
+        const previous = existing.result as StoredDraft | undefined;
+        if (previous && isTrashed(previous)) {
+          trashed = true;
+          tx.abort();
+          return;
+        }
         if (previous && !isSupportedDraftVersion(previous.formatVersion)) {
           unsupported = true;
           tx.abort();
@@ -102,11 +206,13 @@ export async function saveDraft(draft: LocalDraft): Promise<LocalDraft> {
       tx.oncomplete = () => resolve(saved);
       tx.onabort = tx.onerror = () =>
         reject(
-          unsupported
-            ? new Error('Versi draft tersimpan belum didukung. Data tidak diubah.')
-            : conflict
-              ? new DraftConflict()
-              : new Error('Draft belum tersimpan. Coba lagi atau unduh salinannya.'),
+          trashed
+            ? new DraftInTrash()
+            : unsupported
+              ? new Error('Versi draft tersimpan belum didukung. Data tidak diubah.')
+              : conflict
+                ? new DraftConflict()
+                : new Error('Draft belum tersimpan. Coba lagi atau unduh salinannya.'),
         );
     });
   } finally {

@@ -66,3 +66,23 @@ Hasil lokal pada 20 November 2026: `pnpm check` lulus (format, lint, typecheck, 
 Seleksi di dalam daftar mempertahankan ancestor list beserta atribut start. Ordered list mulai nomor 3 tetap memakai nomor awal 3 pada opsi dan pemulihan. Seleksi mulai item kedua memakai nomor aktualnya (4). Source menyimpan slice asli serta fallback blok lengkap, sehingga penghapusan anchor tidak mengubah ordered list menjadi bullet list.
 
 Regresi mencakup dokumen beropsi setelah semua anchor dihapus, penolakan oleh guard klien lama, migrasi v1 tanpa write saat dibuka, penyimpanan v2, dan pemulihan daftar dengan/tanpa anchor.
+
+## Sampah draft lokal
+
+Bank soal menyediakan **Pindahkan ke sampah** dan tampilan **Sampah** dengan aksi
+**Pulihkan draft**. Isi soal, opsi, kunci jawaban, dan identitas draft tetap disimpan.
+Tidak tersedia penghapusan permanen atau pengosongan otomatis. Data tetap hanya
+tersedia pada browser dan origin yang sama.
+
+Database IndexedDB tetap versi 1. Record aktif tetap menggunakan format 1 atau 2;
+record Sampah menggunakan tombstone format 3 dengan `deletedAt` dan
+`originalFormatVersion`. Editor lama menolak format tersebut. `loadDraft` dan
+`listDrafts` tidak mengembalikan record Sampah. Pemindahan dan pemulihan dilakukan
+dalam transaksi dengan pemeriksaan revisi, sehingga autosave tab lama tidak dapat
+menimpa record Sampah. Perubahan yang gagal disimpan tetap dapat diunduh dari editor.
+Pemulihan menaikkan revisi dan mengembalikan record aktif format 2; tab lama harus
+membuka ulang draft. Kontrak konten soal v1 tidak berubah.
+
+Untuk menjalankan tes browser saat port preview dipakai, gunakan environment
+variable `OCTOPUS_E2E_PORT` (default `5174`), misalnya
+`$env:OCTOPUS_E2E_PORT='5184'; pnpm test:e2e` pada PowerShell.
