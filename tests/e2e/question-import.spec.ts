@@ -60,6 +60,7 @@ for (const separator of ['Enter', 'Shift+Enter']) {
     await expect(editor).toContainText('Ikan Cakalang');
     await page.getByRole('button', { name: 'Ulangi', exact: true }).click();
     await expect(page.locator('.question-card')).toHaveCount(2);
+    await expect(editor).toBeFocused();
     await page.keyboard.type('Pertanyaan berikutnya');
     await expect(page.locator('.question-card').last()).toContainText('Pertanyaan berikutnya');
     await expect(page.getByText('Tersimpan di browser ini', { exact: true })).toBeVisible();

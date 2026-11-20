@@ -1,4 +1,6 @@
-import { Route, Router } from '@solidjs/router';
+import { Route, Router, useLocation } from '@solidjs/router';
+import { Show } from 'solid-js';
+import type { ParentProps } from 'solid-js';
 import AppShell from './AppShell';
 import OverviewPage from '../routes/OverviewPage';
 import QuestionBankPage from '../routes/QuestionBankPage';
@@ -8,14 +10,29 @@ import UpcomingPage from '../routes/UpcomingPage';
 import ComponentsPage from '../routes/ComponentsPage';
 import { ThemeProvider } from './theme';
 import QuestionImportPage from '../routes/QuestionImportPage';
+import StudentPreviewPage from '../routes/StudentPreviewPage';
+import PreviewShell from '../features/student-preview/PreviewShell';
+
+function RouteShell(props: ParentProps) {
+  const location = useLocation();
+  return (
+    <Show
+      when={location.pathname.startsWith('/pratinjau-siswa/')}
+      fallback={<AppShell>{props.children}</AppShell>}
+    >
+      <PreviewShell>{props.children}</PreviewShell>
+    </Show>
+  );
+}
 
 export default function App() {
   return (
     <ThemeProvider>
-      <Router root={AppShell}>
+      <Router root={RouteShell}>
         <Route path="/" component={OverviewPage} />
         <Route path="/bank-soal" component={QuestionBankPage} />
         <Route path="/bank-soal/impor/:id" component={QuestionImportPage} />
+        <Route path="/pratinjau-siswa/:id" component={StudentPreviewPage} />
         <Route path="/ujian" component={UpcomingPage} />
         <Route path="/monitoring" component={UpcomingPage} />
         <Route path="/nilai" component={UpcomingPage} />

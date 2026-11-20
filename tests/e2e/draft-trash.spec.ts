@@ -16,7 +16,12 @@ test('moves a draft to trash and restores its content after reload', async ({ pa
   await page.getByRole('button', { name: 'Sampah (1)', exact: true }).click();
   await page.reload();
   await expect(page.locator('.draft-list')).toContainText('Biologi');
+  await expect(page.getByRole('link', { name: 'Pratinjau siswa', exact: true })).toHaveCount(0);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.goto(editorUrl.replace('/bank-soal/impor/', '/pratinjau-siswa/'));
+  await expect(
+    page.getByRole('heading', { name: 'Draft tidak ditemukan', exact: true }),
+  ).toBeVisible();
   await page.goto(editorUrl);
   await page.getByRole('link', { name: 'Buka Sampah', exact: true }).click();
   await page.getByRole('button', { name: 'Pulihkan draft', exact: true }).click();
