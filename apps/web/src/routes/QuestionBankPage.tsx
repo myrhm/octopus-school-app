@@ -1,23 +1,65 @@
-import { A, useNavigate } from '@solidjs/router';
-import { createMemo, createResource, createSignal, For, Show } from 'solid-js';
+import { A, useNavigate, useSearchParams } from '@solidjs/router';
+import { createMemo, createResource, createSignal, For, Show, onMount, onCleanup } from 'solid-js';
 import FileInput from 'lucide-solid/icons/file-input';
 import BookOpen from 'lucide-solid/icons/book-open';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import TextField from '../components/ui/TextField';
-import { createDraft, listDrafts } from '../features/question-import/draft-store';
+import {
+  createDraft,
+  listDrafts,
+  listTrashedDrafts,
+  moveDraftToTrash,
+  restoreDraft,
+} from '../features/question-import/draft-store';
+import type { LocalDraft, TrashedDraft } from '../features/question-import/draft-store';
 
 export default function QuestionBankPage() {
   const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const inTrash = () => params.tampilan === 'sampah';
   const [query, setQuery] = createSignal('');
   const [creating, setCreating] = createSignal(false);
   const [error, setError] = createSignal('');
-  const [drafts, { refetch }] = createResource(listDrafts);
+  const [busy, setBusy] = createSignal<string>();
+  const [notice, setNotice] = createSignal('');
+  const [drafts, { refetch }] = createResource(async () => {
+    const [active, trash] = await Promise.all([listDrafts(), listTrashedDrafts()]);
+    return { active, trash };
+  });
+  const collection = () => (drafts.error ? undefined : drafts());
   const filtered = createMemo(() =>
-    (drafts.error ? [] : (drafts() ?? [])).filter((draft) =>
+    (inTrash() ? (collection()?.trash ?? []) : (collection()?.active ?? [])).filter((draft) =>
       draft.title.toLocaleLowerCase('id').includes(query().trim().toLocaleLowerCase('id')),
     ),
   );
+  const refreshOnFocus = () => {
+    void refetch();
+  };
+  onMount(() => window.addEventListener('focus', refreshOnFocus));
+  onCleanup(() => window.removeEventListener('focus', refreshOnFocus));
+  async function changeTrash(draft: LocalDraft | TrashedDraft) {
+    if (busy()) return;
+    const restoring = inTrash();
+    setBusy(draft.id);
+    setError('');
+    setNotice('');
+    try {
+      if (restoring) await restoreDraft(draft.id, draft.revision);
+      else await moveDraftToTrash(draft.id, draft.revision);
+      setNotice(
+        restoring
+          ? `“${draft.title.trim() || 'Draft tanpa nama'}” dipulihkan ke draft aktif.`
+          : `“${draft.title.trim() || 'Draft tanpa nama'}” dipindahkan ke Sampah. Anda dapat memulihkannya kapan saja.`,
+      );
+      await refetch();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Perubahan belum tersimpan. Coba lagi.');
+      void refetch();
+    } finally {
+      setBusy(undefined);
+    }
+  }
   async function startImport() {
     setCreating(true);
     setError('');
@@ -43,6 +85,36 @@ export default function QuestionBankPage() {
           {creating() ? 'Menyiapkan draft…' : 'Impor soal'}
         </Button>
       </div>
+      <div class="draft-view-switch" role="group" aria-label="Tampilan draft">
+        <Button
+          variant={inTrash() ? 'secondary' : 'primary'}
+          aria-pressed={!inTrash()}
+          onClick={() => setParams({ tampilan: undefined })}
+        >
+          Draft aktif ({collection()?.active.length ?? 0})
+        </Button>
+        <Button
+          variant={inTrash() ? 'primary' : 'secondary'}
+          aria-pressed={inTrash()}
+          onClick={() => setParams({ tampilan: 'sampah' })}
+        >
+          Sampah ({collection()?.trash.length ?? 0})
+        </Button>
+      </div>
+      <Show when={inTrash()}>
+        <div class="trash-description">
+          <h2>Sampah</h2>
+          <p class="field-hint">
+            Draft di sini tetap tersimpan beserta soal, opsi, dan kuncinya. Pulihkan untuk
+            mengeditnya kembali. Tidak ada penghapusan permanen atau otomatis.
+          </p>
+        </div>
+      </Show>
+      <Show when={notice()}>
+        <p class="draft-notice" role="status">
+          {notice()}
+        </p>
+      </Show>
       <div class="local-draft-note">
         <p>
           Draft hanya tersimpan di browser dan perangkat ini. Belum ada akun atau sinkronisasi
@@ -88,11 +160,19 @@ export default function QuestionBankPage() {
                 <span class="empty-icon">
                   <BookOpen size={32} aria-hidden="true" />
                 </span>
-                <h2>{query() ? 'Draft tidak ditemukan' : 'Mulai dari dokumen soal Anda'}</h2>
+                <h2>
+                  {query()
+                    ? 'Draft tidak ditemukan'
+                    : inTrash()
+                      ? 'Sampah masih kosong'
+                      : 'Mulai dari dokumen soal Anda'}
+                </h2>
                 <p>
                   {query()
                     ? 'Coba nama lain atau reset pencarian.'
-                    : 'Pilih Impor soal, tempel isi dokumen, lalu pisahkan menjadi beberapa soal. Draft akan tersimpan otomatis di sini.'}
+                    : inTrash()
+                      ? 'Draft yang dipindahkan ke Sampah akan muncul di sini dan dapat dipulihkan.'
+                      : 'Pilih Impor soal, tempel isi dokumen, lalu pisahkan menjadi beberapa soal. Draft akan tersimpan otomatis di sini.'}
                 </p>
               </section>
             }
@@ -102,27 +182,44 @@ export default function QuestionBankPage() {
                 {(draft) => (
                   <li class="panel draft-list-item">
                     <div>
-                      <Badge>Draft lokal</Badge>
+                      <Badge>{inTrash() ? 'Di Sampah' : 'Draft lokal'}</Badge>
                       <h2>
-                        <A href={`/bank-soal/impor/${draft.id}`}>
-                          {draft.title.trim() || 'Draft tanpa nama'}
-                        </A>
+                        <Show when={!inTrash()} fallback={draft.title.trim() || 'Draft tanpa nama'}>
+                          <A href={`/bank-soal/impor/${draft.id}`}>
+                            {draft.title.trim() || 'Draft tanpa nama'}
+                          </A>
+                        </Show>
                       </h2>
                       <p class="field-hint">
-                        {draft.questionCount} soal · Diperbarui{' '}
+                        {draft.questionCount} soal · {inTrash() ? 'Dipindahkan' : 'Diperbarui'}{' '}
                         {new Date(draft.updatedAt).toLocaleString('id-ID', {
                           dateStyle: 'medium',
                           timeStyle: 'short',
                         })}
                       </p>
                     </div>
-                    <A
-                      class="button"
-                      data-variant="secondary"
-                      href={`/bank-soal/impor/${draft.id}`}
-                    >
-                      Lanjutkan draft
-                    </A>
+                    <div class="draft-item-actions">
+                      <Show when={!inTrash()}>
+                        <A
+                          class="button"
+                          data-variant="secondary"
+                          href={`/bank-soal/impor/${draft.id}`}
+                        >
+                          Lanjutkan draft
+                        </A>
+                      </Show>
+                      <Button
+                        variant={inTrash() ? 'secondary' : 'danger'}
+                        disabled={Boolean(busy())}
+                        onClick={() => void changeTrash(draft)}
+                      >
+                        {busy() === draft.id
+                          ? 'Menyimpan…'
+                          : inTrash()
+                            ? 'Pulihkan draft'
+                            : 'Pindahkan ke sampah'}
+                      </Button>
+                    </div>
                   </li>
                 )}
               </For>
