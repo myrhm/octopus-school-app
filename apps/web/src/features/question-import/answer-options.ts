@@ -41,10 +41,28 @@ function stripLabel(content: Fragment): Fragment {
 }
 
 function rangeContent(state: EditorState, from: number, to: number): Fragment {
-  const slice = state.doc.slice(from, to);
-  return slice.content.firstChild?.isInline
-    ? Fragment.from(state.schema.nodes.paragraph!.create(null, slice.content))
-    : slice.content;
+  // Include ancestors up to the question, then remove only the question wrapper.
+  // Open slices alone can contain listItem[] and lose orderedList/start context.
+  const slice = state.doc.slice(from, to, true);
+  const $from = state.doc.resolve(from);
+  function contextualize(node: Node, depth: number): Node {
+    if (depth > $from.depth || node.type !== $from.node(depth).type) return node;
+    let content = node.content;
+    if (node.firstChild && depth < $from.depth) {
+      content = Fragment.from(contextualize(node.firstChild, depth + 1)).append(
+        node.content.cut(node.firstChild.nodeSize),
+      );
+    }
+    const attrs =
+      node.type.name === 'orderedList'
+        ? { ...node.attrs, start: (node.attrs.start as number) + $from.index(depth) }
+        : node.attrs;
+    return node.type.create(attrs, content, node.marks);
+  }
+  const wrapper = slice.content.firstChild;
+  if (!wrapper || wrapper.type.name !== 'question')
+    throw new Error('Selection is outside a question');
+  return contextualize(wrapper, 1).content;
 }
 
 export function extractOptions(state: EditorState, multiple = false): Result {
@@ -113,11 +131,15 @@ export function extractOptions(state: EditorState, multiple = false): Result {
     id: crypto.randomUUID(),
   }));
   for (const range of ranges) {
-    const content = stripLabel(rangeContent(state, range.from, range.to));
+    const original = rangeContent(state, range.from, range.to);
+    const content = stripLabel(original);
     if (!content.textBetween(0, content.size).trim())
       return { error: 'Ada opsi kosong. Lengkapi isi opsi sebelum mengekstraknya.' };
     options.push({ id: range.id, content: content.toJSON() as QuestionOptionV1['content'] });
-    sources[range.id] = state.doc.slice(range.from, range.to).toJSON();
+    sources[range.id] = {
+      ...state.doc.slice(range.from, range.to).toJSON(),
+      fallbackContent: original.toJSON(),
+    };
   }
   const tr = closeHistory(state.tr);
   for (const range of [...ranges].reverse())
@@ -207,9 +229,13 @@ export function returnOption(state: EditorState, questionId: string, optionId: s
   if (anchor !== undefined && source) {
     tr.replaceRange(anchor, anchor + 1, Slice.fromJSON(state.schema, source));
   } else {
-    let content = source
-      ? Slice.fromJSON(state.schema, source).content
-      : Fragment.fromArray(option.content.map((block) => state.schema.nodeFromJSON(block)));
+    const fallback = (source as { fallbackContent?: QuestionOptionV1['content'] } | undefined)
+      ?.fallbackContent;
+    let content = fallback
+      ? Fragment.fromArray(fallback.map((block) => state.schema.nodeFromJSON(block)))
+      : source
+        ? Slice.fromJSON(state.schema, source).content
+        : Fragment.fromArray(option.content.map((block) => state.schema.nodeFromJSON(block)));
     if (content.firstChild?.isInline)
       content = Fragment.from(state.schema.nodes.paragraph!.create(null, content));
     tr.insert(question.position + question.node.nodeSize - 1, content);

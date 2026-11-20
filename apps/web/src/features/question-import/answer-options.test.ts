@@ -74,6 +74,61 @@ describe('answer options', () => {
     expect(saved.document.content![0]!.attrs!.options).toHaveLength(2);
   });
 
+  for (const removeAnchor of [false, true]) {
+    it(`preserves ordered-list ancestors and start=3 when returning with anchor removed=${removeAnchor}`, () => {
+      const list = schema.node(
+        'orderedList',
+        { start: 3 },
+        ['First', 'Second'].map((text) =>
+          schema.node('listItem', null, [
+            schema.node('paragraph', null, schema.text(text, [schema.mark('bold')])),
+          ]),
+        ),
+      );
+      const doc = schema.node('doc', null, [
+        schema.node('question', { id: 'q1' }, [
+          schema.node('paragraph', null, schema.text('Question?')),
+          list,
+        ]),
+      ]);
+      let state = EditorState.create({ doc, plugins: [history(), questionMetadataPlugin()] });
+      state = selectText(state, 'First', 'Second');
+      state = apply(state, extractOptions(state));
+      const option = readOptions(state.doc.firstChild!.attrs.options)[0]!;
+      expect(option.content[0]!.type).toBe('orderedList');
+      expect(option.content[0]!.attrs!.start).toBe(3);
+      if (removeAnchor) {
+        let position = -1;
+        state.doc.descendants((node, offset) => {
+          if (node.type.name === 'optionAnchor') position = offset;
+        });
+        state = state.apply(state.tr.delete(position, position + 1));
+      }
+      state = apply(state, returnOption(state, 'q1', option.id));
+      expect(state.doc.firstChild!.lastChild!.type.name).toBe('orderedList');
+      expect(state.doc.firstChild!.lastChild!.attrs.start).toBe(3);
+      expect(state.doc.firstChild!.lastChild!.textContent).toBe('FirstSecond');
+      if (!removeAnchor)
+        expect(state.doc.firstChild!.content.eq(doc.firstChild!.content)).toBe(true);
+    });
+  }
+
+  it('numbers a standalone selection from the second list item using its actual item number', () => {
+    const list = schema.node(
+      'orderedList',
+      { start: 3 },
+      ['First', 'Second', 'Third'].map((text) =>
+        schema.node('listItem', null, [schema.node('paragraph', null, schema.text(text))]),
+      ),
+    );
+    let state = EditorState.create({
+      doc: schema.node('doc', null, [schema.node('question', { id: 'q1' }, [list])]),
+      plugins: [history(), questionMetadataPlugin()],
+    });
+    state = selectText(state, 'Second', 'Third');
+    state = apply(state, extractOptions(state));
+    expect(readOptions(state.doc.firstChild!.attrs.options)[0]!.content[0]!.attrs!.start).toBe(4);
+  });
   it('moves only the selected text, preserves marks, and round trips through undo/redo', () => {
     let state = selectText(stateFor(['Before A. Jakarta after']), 'A. Jakarta');
     const original = state.doc;

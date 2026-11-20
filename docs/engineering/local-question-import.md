@@ -60,3 +60,9 @@ Unit tests memeriksa 50 soal, delimiter inline/kosong, formatting, ID, split di 
 Verifikasi perangkat fisik, dokumen Word dari guru nyata, dan pengujian lintas browser masih diperlukan sebelum penerimaan sekolah. Alur ini adalah editor lokal untuk dicoba, bukan bank soal server atau engine ujian yang sudah siap dipakai.
 
 Hasil lokal pada 20 November 2026: `pnpm check` lulus (format, lint, typecheck, 9 unit/component test, build). `pnpm test:e2e` lulus 37 skenario dengan satu skip untuk skenario khusus mobile pada konfigurasi desktop. Pemeriksaan Axe mencakup editor terang/gelap dan viewport 360 px. Animasi dialog ditunggu selesai sebelum pengukuran kontras; transisi background tombol dihapus agar perpindahan tema tidak melewati warna yang kontrasnya rendah.
+
+## Perbaikan hasil review PR 4
+
+Seleksi di dalam daftar mempertahankan ancestor list beserta atribut start. Ordered list mulai nomor 3 tetap memakai nomor awal 3 pada opsi dan pemulihan. Seleksi mulai item kedua memakai nomor aktualnya (4). Source menyimpan slice asli serta fallback blok lengkap, sehingga penghapusan anchor tidak mengubah ordered list menjadi bullet list.
+
+Regresi mencakup dokumen beropsi setelah semua anchor dihapus, penolakan oleh guard klien lama, migrasi v1 tanpa write saat dibuka, penyimpanan v2, dan pemulihan daftar dengan/tanpa anchor.
