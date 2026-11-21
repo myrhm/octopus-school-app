@@ -74,26 +74,129 @@
   text-align: center;
   font-size: 0.875rem;
 }
-@media (max-width: 760px) {
-  .workspace-header {
-    flex-wrap: wrap;
-    height: auto;
-    gap: 12px;
-  }
-  .workspace-account-actions {
-    display: contents;
-  }
-  .account-controls {
-    gap: 8px;
-    flex: 1 0 100%;
-    order: 3;
-    justify-content: flex-end;
-  }
+.drawer-account {
+  display: none;
+}
+.workspace-header .workspace-account-actions,
+.workspace-header .account-controls {
+  flex-wrap: nowrap;
+}
+@media (max-width: 900px) {
   .account-name {
     display: none;
   }
   .account-school {
-    flex: 1;
-    min-width: 0;
+    width: min(18vw, 160px);
   }
+}
+@media (max-width: 560px) {
+  .workspace-header .account-controls {
+    display: none;
+  }
+  .drawer-account {
+    display: block;
+    padding: 16px 0;
+  }
+  .drawer-account .account-school {
+    width: 100%;
+  }
+  .workspace-header
+    .account-controls:has(> .account-name):not(
+      :has(select, .field-error, button[data-variant='secondary'])
+    ) {
+    display: flex;
+  }
+  .workspace-header .workspace-account-actions {
+    gap: 4px;
+  }
+  .workspace-header .account-controls .button {
+    padding-inline: 8px;
+  }
+}
+.exam-manager,
+.exam-manager .panel,
+.exam-manager form,
+.exam-manager label,
+.exam-manager article {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+.exam-manager {
+  gap: 1.25rem;
+}
+.exam-manager .button {
+  justify-self: start;
+}
+.exam-manager .text-input,
+.exam-manager input[type='file'] {
+  width: 100%;
+  min-width: 0;
+}
+.exam-manager article {
+  border-top: 1px solid var(--border);
+  padding-block: 1rem;
+}
+.exam-manager input::file-selector-button {
+  padding: 0.5rem 0.75rem;
+  margin-inline-end: 0.75rem;
+  cursor: pointer;
+}
+@media (min-width: 48rem) {
+  .exam-manager form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .exam-manager form label:first-child,
+  .exam-manager form .button {
+    grid-column: 1 / -1;
+  }
+}
+.participant-exam,
+.participant-exam form,
+.participant-exam fieldset {
+  display: grid;
+  gap: 1rem;
+}
+.participant-exam fieldset {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.participant-exam fieldset label {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.5rem;
+  cursor: pointer;
+}
+.participant-exam .button {
+  justify-self: start;
+}
+.exam-manager,
+.exam-manager .panel,
+.exam-manager form,
+.exam-manager label {
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 48rem) {
+  .exam-manager form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.action-feedback:empty {
+  margin: 0;
+  height: 0;
+}
+.exam-manager .panel:has(.action-feedback:empty) .action-feedback:empty {
+  position: absolute;
+}
+.action-feedback:not(:empty) {
+  padding: 0.5rem 0.75rem;
+  border-inline-start: 3px solid var(--primary);
+  background: var(--primary-soft);
+  overflow-wrap: anywhere;
+}
+.action-feedback[data-phase='error'] {
+  border-color: var(--danger);
+  background: var(--danger-soft);
 }
