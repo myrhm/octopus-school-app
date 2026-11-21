@@ -1,3 +1,4 @@
+import { backend } from '../backend/client';
 import { A, useParams } from '@solidjs/router';
 import { createResource, Show, Suspense } from 'solid-js';
 import Button from '../components/ui/Button';
@@ -35,7 +36,11 @@ export default function StudentPreviewPage() {
           fallback={
             <section class="page">
               <h1>Draft tidak ditemukan</h1>
-              <p>Draft lokal hanya tersedia di browser tempat Anda membuatnya.</p>
+              <p>
+                {backend
+                  ? 'Periksa sekolah aktif dan akses draft Anda.'
+                  : 'Draft lokal hanya tersedia di browser tempat Anda membuatnya.'}
+              </p>
               <A href="/bank-soal">Buka bank soal</A>
             </section>
           }

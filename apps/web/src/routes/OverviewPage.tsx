@@ -1,3 +1,4 @@
+import { backend } from '../backend/client';
 import { A } from '@solidjs/router';
 import BookOpen from 'lucide-solid/icons/book-open';
 import CalendarDays from 'lucide-solid/icons/calendar-days';
@@ -73,8 +74,9 @@ export default function OverviewPage() {
       <div class="preview-note">
         <span class="note-dot" aria-hidden="true" />
         <p>
-          Impor dan susun draft soal sudah dapat dicoba secara lokal. Akun sekolah dan
-          penyelenggaraan ujian belum tersedia.
+          {backend
+            ? 'Kelola draft sekolah dan jadwalkan ujian dari ruang ujian.'
+            : 'Impor dan susun draft soal sudah dapat dicoba secara lokal. Akun sekolah dan penyelenggaraan ujian belum tersedia.'}
         </p>
       </div>
     </section>

@@ -1,3 +1,4 @@
+import { backend } from '../../backend/client';
 import { Editor, getSchema } from '@tiptap/core';
 import { A, useBeforeLeave } from '@solidjs/router';
 import { createSignal, onCleanup, onMount, Show } from 'solid-js';
@@ -226,7 +227,7 @@ export default function QuestionWorkspace(props: { draft: LocalDraft }) {
             Tempel dokumen Anda, lalu rapikan batas antarsoal tanpa menyalin ulang.
           </p>
         </div>
-        <Badge tone="info">Hanya di browser ini</Badge>
+        <Badge tone="info">{backend ? 'Draft sekolah' : 'Hanya di browser ini'}</Badge>
       </div>
       <div class="local-draft-note">
         <p>
@@ -263,7 +264,9 @@ export default function QuestionWorkspace(props: { draft: LocalDraft }) {
           </span>
           <span role="status" aria-live="polite">
             {status() === 'saved'
-              ? 'Tersimpan di browser ini'
+              ? backend
+                ? 'Tersimpan di sekolah'
+                : 'Tersimpan di browser ini'
               : status() === 'saving'
                 ? 'Menyimpan draft…'
                 : 'Draft belum tersimpan'}

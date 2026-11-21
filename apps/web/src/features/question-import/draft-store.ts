@@ -1,3 +1,4 @@
+import { backend, school } from '../../backend/client';
 import type { JSONContent } from '@tiptap/core';
 import { emptyDocument } from './document';
 
@@ -44,7 +45,7 @@ function openDatabase(): Promise<IDBDatabase> {
   });
 }
 
-async function listRecords(): Promise<StoredDraft[]> {
+export async function listLocalRecords(): Promise<StoredDraft[]> {
   const db = await openDatabase();
   try {
     return await new Promise((resolve, reject) => {
@@ -61,6 +62,31 @@ async function listRecords(): Promise<StoredDraft[]> {
   }
 }
 
+async function listRecords(): Promise<StoredDraft[]> {
+  if (!backend) return listLocalRecords();
+  const { data, error } = await backend.from('drafts').select('payload').eq('school_id', school());
+  if (error) throw error;
+  return data
+    .map((row) => row.payload as StoredDraft)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
+async function writeRemote(record: StoredDraft, expected: number, schoolId: string) {
+  const values = { payload: record, revision: expected + 1 };
+  const table = backend!.from('drafts');
+  const query =
+    expected === 0
+      ? table.insert({ ...values, id: record.id, school_id: schoolId })
+      : table.update(values).eq('school_id', schoolId).eq('id', record.id).eq('revision', expected);
+  const { data, error } = await query.select('revision').maybeSingle();
+  if (error?.code === '23505' || (!error && !data)) throw new DraftConflict();
+  if (error) throw error;
+}
+
+export async function importLocalRecord(record: StoredDraft) {
+  await writeRemote({ ...record, revision: 1 }, 0, school());
+}
+
 export async function listDrafts(): Promise<LocalDraft[]> {
   return (await listRecords()).filter((draft): draft is LocalDraft => !isTrashed(draft));
 }
@@ -70,6 +96,16 @@ export async function listTrashedDrafts(): Promise<TrashedDraft[]> {
 }
 
 async function loadRecord(id: string): Promise<StoredDraft | undefined> {
+  if (backend) {
+    const { data, error } = await backend
+      .from('drafts')
+      .select('payload')
+      .eq('school_id', school())
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    return data?.payload;
+  }
   const db = await openDatabase();
   try {
     return await new Promise((resolve, reject) => {
@@ -105,6 +141,41 @@ export class DraftInTrash extends DraftConflict {
 }
 
 async function changeTrashState(id: string, revision: number, restore: boolean): Promise<void> {
+  if (backend) {
+    const schoolId = school();
+    const record = await loadRecord(id);
+    if (!record || record.revision !== revision || restore !== isTrashed(record))
+      throw new DraftConflict();
+    const updatedAt = new Date().toISOString();
+    if (isTrashed(record)) {
+      const { originalFormatVersion, deletedAt, ...draft } = record;
+      if (!deletedAt) throw new DraftConflict();
+      await writeRemote(
+        {
+          ...upgradeDraft({ ...draft, formatVersion: originalFormatVersion }),
+          revision: revision + 1,
+          updatedAt,
+        },
+        revision,
+        schoolId,
+      );
+    } else {
+      const draft = upgradeDraft(record);
+      await writeRemote(
+        {
+          ...draft,
+          formatVersion: 3,
+          originalFormatVersion: draft.formatVersion,
+          deletedAt: updatedAt,
+          updatedAt,
+          revision: revision + 1,
+        },
+        revision,
+        schoolId,
+      );
+    }
+    return;
+  }
   const db = await openDatabase();
   try {
     await new Promise<void>((resolve, reject) => {
@@ -170,6 +241,15 @@ export function restoreDraft(id: string, revision: number) {
 
 export async function saveDraft(draft: LocalDraft): Promise<LocalDraft> {
   const upgraded = upgradeDraft(draft);
+  if (backend) {
+    const saved = {
+      ...upgraded,
+      revision: draft.revision + 1,
+      updatedAt: new Date().toISOString(),
+    };
+    await writeRemote(saved, draft.revision, school());
+    return saved;
+  }
   const db = await openDatabase();
   try {
     return await new Promise((resolve, reject) => {

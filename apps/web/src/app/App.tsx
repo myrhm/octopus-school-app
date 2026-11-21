@@ -1,3 +1,5 @@
+import SchoolGate from '../backend/SchoolGate';
+import { backend } from '../backend/client';
 import { Route, Router, useLocation } from '@solidjs/router';
 import { Show } from 'solid-js';
 import type { ParentProps } from 'solid-js';
@@ -13,7 +15,7 @@ import QuestionImportPage from '../routes/QuestionImportPage';
 import StudentPreviewPage from '../routes/StudentPreviewPage';
 import PreviewShell from '../features/student-preview/PreviewShell';
 
-function RouteShell(props: ParentProps) {
+function WorkspaceShell(props: ParentProps) {
   const location = useLocation();
   return (
     <Show
@@ -22,6 +24,23 @@ function RouteShell(props: ParentProps) {
     >
       <PreviewShell>{props.children}</PreviewShell>
     </Show>
+  );
+}
+
+function RouteShell(props: ParentProps) {
+  const location = useLocation();
+  return (
+    <>
+      {backend && location.pathname.startsWith('/e/') ? (
+        props.children
+      ) : backend ? (
+        <SchoolGate>
+          <WorkspaceShell>{props.children}</WorkspaceShell>
+        </SchoolGate>
+      ) : (
+        <WorkspaceShell>{props.children}</WorkspaceShell>
+      )}
+    </>
   );
 }
 
@@ -43,3 +62,4 @@ export default function App() {
     </ThemeProvider>
   );
 }
+
