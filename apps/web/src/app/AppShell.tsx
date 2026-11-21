@@ -9,6 +9,7 @@ import { navigation } from './navigation';
 import Brand from '../components/Brand';
 import ThemeSelect from '../components/ThemeSelect';
 import Badge from '../components/ui/Badge';
+import { AccountControls } from '../backend/SchoolGate';
 
 function Navigation(props: { onNavigate?: () => void }) {
   return (
@@ -107,7 +108,10 @@ export default function AppShell(props: ParentProps) {
             </span>
             <span class="header-page">{pageLabel()}</span>
           </div>
-          <ThemeSelect />
+          <div class="workspace-account-actions">
+            <AccountControls />
+            <ThemeSelect />
+          </div>
         </header>
         <main id="main-content" tabindex="-1">
           {props.children}

@@ -1,6 +1,6 @@
 import ExamManager from '../backend/ExamManager';
 import ParticipantExam from '../backend/ParticipantExam';
-import SchoolGate from '../backend/SchoolGate';
+import SchoolGate, { SchoolSession } from '../backend/SchoolGate';
 import { backend } from '../backend/client';
 import { Route, Router, useLocation } from '@solidjs/router';
 import { Show } from 'solid-js';
@@ -32,17 +32,22 @@ function WorkspaceShell(props: ParentProps) {
 function RouteShell(props: ParentProps) {
   const location = useLocation();
   return (
-    <>
+    <SchoolSession>
       {backend && location.pathname.startsWith('/e/') ? (
         props.children
       ) : backend ? (
-        <SchoolGate>
-          <WorkspaceShell>{props.children}</WorkspaceShell>
-        </SchoolGate>
+        <WorkspaceShell>
+          <Show
+            when={location.pathname === '/'}
+            fallback={<SchoolGate>{props.children}</SchoolGate>}
+          >
+            {props.children}
+          </Show>
+        </WorkspaceShell>
       ) : (
         <WorkspaceShell>{props.children}</WorkspaceShell>
       )}
-    </>
+    </SchoolSession>
   );
 }
 
