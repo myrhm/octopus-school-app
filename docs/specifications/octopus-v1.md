@@ -162,20 +162,20 @@ Dashboard dapat refetch dari database ketika realtime terlewat. Pengawas dapat u
 
 ## 12. Arsitektur dan stack
 
-Arsitektur **modular monolith, API-first, multi-tenant**, satu repository dan satu Supabase project per environment. Stack mengikuti sumber; versi dependency ditetapkan dan dikunci ketika implementasi dimulai, setelah verifikasi dokumentasi saat itu.
+Arsitektur **modular monolith, API-first, multi-tenant**, satu repository dan satu Appwrite project per environment. Stack mengikuti sumber; versi dependency ditetapkan dan dikunci ketika implementasi dimulai, setelah verifikasi dokumentasi saat itu.
 
-| Lapisan    | Teknologi dan tanggung jawab                                                  |
-| ---------- | ----------------------------------------------------------------------------- |
-| Web        | SolidJS, TypeScript strict, Vite, Solid Router                                |
-| UI         | Tailwind CSS, Kobalte, Lucide, token desain Octopus                           |
-| Editor     | Tiptap/ProseMirror melalui lifecycle Solid; tanpa asumsi adapter React        |
-| Validasi   | Zod dan validasi backend; batas node rich text terdokumentasi                 |
-| Database   | Supabase PostgreSQL, constraints, RLS, transaksi/RPC                          |
-| API        | Supabase Edge Functions, autentikasi, otorisasi, orkestrasi                   |
-| Media      | Supabase Storage privat dan akses terbatas                                    |
-| Monitoring | Supabase Realtime sebagai notifikasi, PostgreSQL sebagai rekam resmi          |
-| Tooling    | pnpm workspace, ESLint, Prettier sebagai formatter usulan, Vitest, Playwright |
-| Deploy     | Vercel untuk web, Supabase untuk backend; local/staging/production terpisah   |
+| Lapisan    | Teknologi dan tanggung jawab                                                      |
+| ---------- | --------------------------------------------------------------------------------- |
+| Web        | SolidJS, TypeScript strict, Vite, Solid Router                                    |
+| UI         | Tailwind CSS, Kobalte, Lucide, token desain Octopus                               |
+| Editor     | Tiptap/ProseMirror melalui lifecycle Solid; tanpa asumsi adapter React            |
+| Validasi   | Zod dan validasi backend; batas node rich text terdokumentasi                     |
+| Database   | Appwrite TablesDB, validasi server, permissions Appwrite, transaksi dan Functions |
+| API        | Appwrite Functions, autentikasi, otorisasi, orkestrasi                            |
+| Media      | Appwrite Storage privat dan akses terbatas                                        |
+| Monitoring | Appwrite Realtime sebagai notifikasi, Appwrite TablesDB sebagai rekam resmi       |
+| Tooling    | pnpm workspace, ESLint, Prettier sebagai formatter usulan, Vitest, Playwright     |
+| Deploy     | Vercel untuk web, Appwrite untuk backend; local/staging/production terpisah       |
 
 Struktur target, dibuat bertahap saat dibutuhkan:
 
@@ -188,14 +188,14 @@ packages/question-import
 packages/exam-client
 packages/ui
 packages/config
-supabase/migrations
-supabase/functions
-supabase/tests
+appwrite/setup
+appwrite/function
+appwrite/tests
 contracts/openapi.yaml
 docs/
 ```
 
-`domain` berisi model dan fungsi murni, tanpa DOM/Solid/Supabase SDK. `question-import` memisahkan deteksi/transformasi dari adapter transaksi editor. `exam-client` mengelola queue/recovery, bukan keputusan keamanan. Shared packages tidak mengimpor aplikasi atau membentuk circular dependencies. Backend memvalidasi seluruh aturan otoritatif walaupun klien memiliki validasi serupa.
+`domain` berisi model dan fungsi murni, tanpa DOM/Solid/Appwrite SDK. `question-import` memisahkan deteksi/transformasi dari adapter transaksi editor. `exam-client` mengelola queue/recovery, bukan keputusan keamanan. Shared packages tidak mengimpor aplikasi atau membentuk circular dependencies. Backend memvalidasi seluruh aturan otoritatif walaupun klien memiliki validasi serupa.
 
 Tauri kelak memakai ulang UI/packages TypeScript dengan adapter native. Flutter memakai kontrak API dan format konten yang sama melalui Dart, bukan komponen Solid. Format rich text harus mempunyai versi schema dan renderer siswa yang terdokumentasi agar multi-client memungkinkan.
 
@@ -221,8 +221,8 @@ Pisahkan TeacherQuestionDTO, StudentQuestionDTO, dan QuestionAnswerKeyDTO. DTO s
 
 ## 14. Keamanan dan operasional
 
-- Guru memakai Supabase Auth; izin berasal dari membership database yang tidak dapat diubah bebas melalui metadata pengguna.
-- RLS dan privileges diperiksa untuk seluruh tabel terekspos; guest tidak mendapat akses Data API generik.
+- Guru memakai Appwrite Account; izin berasal dari membership database yang tidak dapat diubah bebas melalui metadata pengguna.
+- permissions dan scope akses server diperiksa untuk seluruh tabel terekspos; guest tidak mendapat akses Data API generik.
 - Secret/service-role tidak masuk frontend; operasi server tetap memeriksa tenant dan actor ketika memakai hak istimewa.
 - Sanitasi paste dan rich text, batasi ukuran payload, verifikasi isi file, dan jangan memuat script/macro atau URL gambar eksternal tanpa kebijakan.
 - Kredensial, token sesi, jawaban sensitif, dan kunci tidak dicetak pada log aplikasi.
@@ -242,7 +242,7 @@ Pisahkan TeacherQuestionDTO, StudentQuestionDTO, dan QuestionAnswerKeyDTO. DTO s
 | 7. Pilot       | Uji keamanan, beban, mobile, aksesibilitas, backup/recovery, dokumen guru nyata              |
 | 8. Native      | Tauri/Flutter setelah web lolos penerimaan                                                   |
 
-Unit test menargetkan transformasi isi, parser, validasi, dan grading. Integration test mencakup tenant isolation/RLS, deadline, credential verification, finalisasi, idempotency, serta race save-submit. Playwright mencakup guru impor → publish → peserta jawab → refresh → submit → koreksi → rilis → ekspor di desktop dan mobile.
+Unit test menargetkan transformasi isi, parser, validasi, dan grading. Integration test mencakup isolasi sekolah dan permissions, deadline, credential verification, finalisasi, idempotency, serta race save-submit. Playwright mencakup guru impor → publish → peserta jawab → refresh → submit → koreksi → rilis → ekspor di desktop dan mobile.
 
 Pilot mensyaratkan: kunci tidak bocor pada network/storage siswa; guru sekolah lain ditolak; perubahan jam lokal tidak mengubah deadline; request setelah finalisasi ditolak; retry tidak menggandakan nilai/event; upload gagal tidak dianggap tersimpan; dua perangkat tidak memegang sesi aktif bersamaan tanpa izin; light/dark tetap terbaca dan semua aksi inti dapat dioperasikan dengan keyboard.
 

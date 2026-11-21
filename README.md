@@ -2,7 +2,7 @@
 
 Platform ujian sekolah untuk menyusun soal dari dokumen, menyelenggarakan ujian, mengoreksi jawaban, dan mengevaluasi hasil belajar.
 
-Fondasi web dan editor impor lokal sudah tersedia. Dari Bank Soal, pilih **Impor soal**, tempel dokumen, pisahkan/gabungkan soal, lalu seleksi teks jawaban untuk diekstrak menjadi opsi. Opsi dapat diurutkan, diberi satu kunci jawaban, dan dikembalikan ke teks soal. Undo/redo serta autosave IndexedDB menyimpan struktur agar dapat dilanjutkan setelah reload. Akun, backend, upload media, dan penyelenggaraan ujian belum diimplementasikan.
+Fondasi web dan editor impor lokal sudah tersedia. Dari Bank Soal, pilih **Impor soal**, tempel dokumen, pisahkan/gabungkan soal, lalu seleksi teks jawaban untuk diekstrak menjadi opsi. Opsi dapat diurutkan, diberi satu kunci jawaban, dan dikembalikan ke teks soal. Undo/redo serta autosave IndexedDB menyimpan struktur agar dapat dilanjutkan setelah reload. Integrasi Appwrite menyediakan login guru, Teams sekolah, penyimpanan draft server, upload gambar privat, penerbitan versi soal, jadwal ujian pilihan ganda, akses peserta lewat tautan, dan penilaian server. Konfigurasi cloud dan pengujian langsung masih diperlukan.
 
 ## Menjalankan proyek
 
@@ -13,7 +13,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Buka http://127.0.0.1:5173. Halaman yang tersedia: ringkasan (`/`), bank soal (`/bank-soal`), dan pengaturan tampilan (`/pengaturan`). Halaman ujian, monitoring, serta nilai menampilkan informasi fitur yang akan datang. Referensi visual komponen tersedia di `/komponen`, terpisah dari navigasi guru.
+Buka http://127.0.0.1:5173. Halaman yang tersedia: ringkasan (`/`), bank soal (`/bank-soal`), dan pengaturan tampilan (`/pengaturan`). Dengan konfigurasi Appwrite, halaman ujian, monitoring, dan nilai membuka pengelolaan ujian serta hasil. Tanpa konfigurasi, aplikasi memakai draft lokal. Referensi visual komponen tersedia di `/komponen`, terpisah dari navigasi guru.
 
 ```sh
 pnpm check
@@ -47,4 +47,8 @@ Integrasi preview independen mengikuti [kontrak soal v1](docs/engineering/questi
 - [Identitas visual dan desain antarmuka](docs/specifications/visual-design.md)
 - [Dokumen sumber](docs/references/README.md)
 
-Stack yang ditetapkan: SolidJS, TypeScript, Vite, Tailwind CSS, Supabase, dan Vercel. Tauri desktop dan Flutter Android merupakan pengembangan setelah web stabil.
+Stack yang ditetapkan: SolidJS, TypeScript, Vite, Tailwind CSS, Appwrite, dan Vercel. Tauri desktop dan Flutter Android merupakan pengembangan setelah web stabil.
+
+## Konfigurasi Appwrite
+
+Ikuti [panduan backend Appwrite](docs/engineering/appwrite-backend.md) untuk konfigurasi cloud dan batas implementasi saat ini.

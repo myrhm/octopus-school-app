@@ -5,7 +5,7 @@
 **Versi spesifikasi:** 1.0  
 **Prioritas:** MVP — Core Feature  
 **Frontend:** SolidJS + TypeScript  
-**Backend:** Supabase (PostgreSQL, Auth, Storage)  
+**Backend:** Appwrite (Appwrite TablesDB, Auth, Storage)  
 **Prinsip utama:** Zero AI Dependency, Non-Destructive Editing, Progressive Structuring
 
 ---
@@ -570,7 +570,7 @@ Simpan metadata:
 - Upload status.
 - Reference count atau mekanisme referensi yang setara.
 
-Gunakan Supabase Storage dengan validasi MIME type dan batas ukuran file.
+Gunakan Appwrite Storage dengan validasi MIME type dan batas ukuran file.
 
 Jangan menghapus gambar fisik hanya karena guru melakukan Undo, Merge, atau menghapus salah satu referensi gambar. Gunakan lifecycle aset dan pembersihan terkontrol untuk file yang benar-benar tidak lagi digunakan.
 
@@ -800,8 +800,8 @@ Struktur yang disarankan:
       import-transform/
       exam-client/
 
-    supabase/
-      migrations/
+    appwrite/
+      setup/
       functions/
       tests/
 
@@ -842,7 +842,7 @@ Kontrak backend harus tetap independen agar nanti dapat digunakan oleh klien Flu
 
 ## 13.4. Backend
 
-Supabase bertanggung jawab atas:
+Appwrite bertanggung jawab atas:
 
 - Penyimpanan draft.
 - Penyimpanan soal.
@@ -853,7 +853,7 @@ Supabase bertanggung jawab atas:
 - Transaksi save.
 - Question versioning.
 
-Gunakan RLS dan validasi server.
+Gunakan permissions Appwrite dan validasi server.
 
 Frontend tidak boleh menentukan sendiri bahwa pengguna berhak mengubah soal sekolah lain.
 
@@ -906,7 +906,7 @@ Jangan menampilkan dokumentasi teknis panjang ketika guru pertama kali membuka f
 - Batasi ukuran dokumen dan gambar.
 - Validasi tipe file berdasarkan konten, bukan hanya ekstensi.
 - Gunakan storage privat atau akses yang sesuai dengan kebijakan sekolah.
-- Terapkan RLS berdasarkan sekolah dan hak akses.
+- Terapkan permissions Appwrite berdasarkan sekolah dan hak akses.
 - Kunci jawaban tidak boleh tersedia melalui endpoint pengerjaan siswa.
 - Operasi bulk save harus idempoten.
 - Log perubahan penting yang melibatkan soal final.
