@@ -25,10 +25,10 @@ export default function StudentPreview(props: {
   );
   let questionHeading: HTMLHeadingElement | undefined;
 
-  function goTo(next: number) {
+  function goTo(next: number, closeNavigator = false) {
     if (next < 0 || next >= props.questions.length) return;
     setIndex(next);
-    setNavigatorOpen(false);
+    if (closeNavigator) setNavigatorOpen(false);
     questionHeading?.focus();
   }
 
@@ -188,7 +188,7 @@ export default function StudentPreview(props: {
                     classList={{ 'is-answered': answers().has(question.id) }}
                     aria-label={`Soal ${questionIndex() + 1}, ${answers().has(question.id) ? 'sudah dipilih' : 'belum dipilih'}`}
                     aria-current={index() === questionIndex() ? 'step' : undefined}
-                    onClick={() => goTo(questionIndex())}
+                    onClick={() => goTo(questionIndex(), true)}
                   >
                     {questionIndex() + 1}
                     <Show when={answers().has(question.id)}>
