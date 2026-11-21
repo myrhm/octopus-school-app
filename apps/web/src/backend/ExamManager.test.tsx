@@ -1,7 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
 import { beforeEach, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({ local: vi.fn(), drafts: vi.fn(), copy: vi.fn(), call: vi.fn() }));
-vi.mock('./client', () => ({ call: mocks.call }));
+vi.mock('./client', () => ({ call: mocks.call, school: () => 'test-school' }));
+vi.mock('./SchoolGate', () => ({ useSchoolSession: () => ({ user: () => ({ $id: 'teacher' }) }) }));
 vi.mock('./BankLibrary', () => ({ BankContents: () => null }));
 vi.mock('../features/question-import/draft-store', () => ({
   listDrafts: mocks.drafts,
@@ -11,7 +12,7 @@ vi.mock('../features/question-import/draft-store', () => ({
 import ExamManager from './ExamManager';
 
 beforeEach(() => {
-  vi.resetAllMocks();
+  vi.clearAllMocks();
   mocks.drafts.mockResolvedValue([]);
   mocks.call.mockResolvedValue([]);
   mocks.local.mockResolvedValue([

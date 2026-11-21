@@ -88,7 +88,7 @@ export default function ExamManager() {
         : '';
     if (key === cacheKey) return;
     cacheKey = key;
-    let restored = emptyForm();
+    const restored = emptyForm();
     setCacheMessage('');
     try {
       const saved = key ? JSON.parse(localStorage.getItem(key) ?? 'null') : null;
