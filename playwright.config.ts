@@ -15,10 +15,22 @@ export default defineConfig({
     { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'] } },
     { name: 'mobile-chromium', use: { ...devices['Pixel 7'] } },
   ],
-  webServer: {
-    command: `pnpm preview --port ${port}`,
-    url: baseURL,
-    reuseExistingServer: false,
-    timeout: 30_000,
-  },
+  webServer: [
+    {
+      command: `pnpm --filter @octopus/web exec vite build --outDir node_modules/.cache/e2e-offline && pnpm preview --outDir node_modules/.cache/e2e-offline --port ${port}`,
+      env: { VITE_APPWRITE_ENDPOINT: '', VITE_APPWRITE_PROJECT_ID: '' },
+      url: baseURL,
+      reuseExistingServer: false,
+      timeout: 30_000,
+    },
+    {
+      command: `pnpm dev --port ${port + 1} --strictPort`,
+      url: `http://127.0.0.1:${port + 1}`,
+      env: {
+        VITE_APPWRITE_ENDPOINT: `http://127.0.0.1:${port + 1}/v1`,
+        VITE_APPWRITE_PROJECT_ID: 'e2e',
+      },
+      reuseExistingServer: false,
+    },
+  ],
 });

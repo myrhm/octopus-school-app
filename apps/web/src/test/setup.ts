@@ -4,7 +4,7 @@ import 'fake-indexeddb/auto';
 
 // jsdom does not implement scrolling; real scrolling is covered in browser tests.
 beforeEach(() => {
-  vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+  vi.stubGlobal('scrollTo', vi.fn());
   vi.stubGlobal(
     'matchMedia',
     vi.fn((query: string) => ({

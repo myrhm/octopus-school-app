@@ -21,7 +21,7 @@ pnpm exec playwright install chromium
 pnpm test:e2e
 ```
 
-`pnpm check` menjalankan format check, lint, typecheck, component tests, dan build. E2E memakai hasil build melalui preview server di port 5174; jalankan `pnpm build` jika menjalankan E2E secara terpisah setelah perubahan kode.
+`pnpm check` menjalankan format check, lint, typecheck, component tests, dan build. E2E membangun aplikasi mode lokal di port 5174 dan menjalankan server terpisah di port 5175 untuk alur peserta dengan API simulasi.
 
 Perintah tambahan: `pnpm test:watch`, `pnpm format`, dan `pnpm preview`.
 
