@@ -1,5 +1,5 @@
 import { createResource, createSignal, For, Show } from 'solid-js';
-import { backend, school } from './client';
+import { call } from './client';
 import {
   listDrafts,
   listLocalRecords,
@@ -8,26 +8,26 @@ import {
 import { toStudentQuestions } from '../features/question-import/question-contract';
 
 export default function ExamManager() {
-  const db = backend!;
-  const schoolId = school();
   const [message, setMessage] = createSignal('');
   const [drafts, { refetch: refreshDrafts }] = createResource(listDrafts);
   const [local] = createResource(listLocalRecords);
-  const [bank, { refetch: reloadBank }] = createResource(async () => {
-    const { data, error } = await db.from('bank_sets').select('id,title').eq('school_id', schoolId);
-    if (error) throw error;
-    return data;
-  });
-  const [exams, { refetch: reloadExams }] = createResource(async () => {
-    const { data, error } = await db
-      .from('exams')
-      .select(
-        'id,opens_at,closes_at,bank_sets!inner(title,school_id),attempts(participant,correct_count,submitted_at)',
-      )
-      .eq('bank_sets.school_id', schoolId);
-    if (error) throw error;
-    return data;
-  });
+  const [bank, { refetch: reloadBank }] = createResource(() =>
+    call<{ id: string; title: string }[]>('bank'),
+  );
+  const [exams, { refetch: reloadExams }] = createResource(() =>
+    call<
+      {
+        id: string;
+        opens_at: string;
+        closes_at: string;
+        attempts: {
+          participant: string;
+          submitted_at: string | null;
+          correct_count: number | null;
+        }[];
+      }[]
+    >('exams'),
+  );
   let draft!: HTMLSelectElement,
     collection!: HTMLSelectElement,
     start!: HTMLInputElement,
@@ -55,26 +55,24 @@ export default function ExamManager() {
       questions.some((q) => !q.options.some((o) => o.id === q.correctOptionId))
     )
       throw new Error('Lengkapi pilihan dan kunci tiap soal.');
-    const { error } = await db
-      .from('bank_sets')
-      .insert({ school_id: schoolId, title: source.title, questions });
-    if (error) throw error;
+    await call('publish', { title: source.title, questions });
     await reloadBank();
   }
   async function schedule() {
-    const { error } = await db.from('exams').insert({
+    await call('schedule', {
       bank_id: collection.value,
       opens_at: new Date(start.value).toISOString(),
       closes_at: new Date(end.value).toISOString(),
     });
-    if (error) throw error;
+
     await reloadExams();
   }
   async function upload(file: File) {
-    const { error } = await db.storage
-      .from('question-media')
-      .upload(schoolId + '/' + crypto.randomUUID() + '/' + file.name, file);
-    if (error) throw error;
+    if (file.size > 1024 * 1024) throw new Error('Ukuran gambar maksimal 1 MB.');
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    let binary = '';
+    for (const byte of bytes) binary += String.fromCharCode(byte);
+    await call('upload', { name: file.name, mime: file.type, content: btoa(binary) });
   }
   return (
     <main class="page">

@@ -1,45 +1,32 @@
-import {
-  createResource,
-  createSignal,
-  For,
-  Show,
-  onCleanup,
-  onMount,
-  type ParentProps,
-} from 'solid-js';
-import { backend, school, setSchool } from './client';
+import { createResource, createSignal, For, Show, onMount, type ParentProps } from 'solid-js';
+import { backend, schools as listSchools, school, setSchool } from './client';
 
 export default function SchoolGate(props: ParentProps) {
   const db = backend!;
-  let currentUser = '';
+
   const [user, setUser] = createSignal('');
   const [message, setMessage] = createSignal('');
   let email!: HTMLInputElement;
   let password!: HTMLInputElement;
-  onMount(() => {
-    const { data } = db.auth.onAuthStateChange((_event, session) => {
-      const next = session?.user.id ?? '';
-      if (currentUser !== next) setSchool('');
-      currentUser = next;
-      setUser(next);
-    });
-    onCleanup(() => data.subscription.unsubscribe());
-  });
-  const [schools] = createResource(user, async () => {
-    const result = await db.from('schools').select('id,name').order('name');
-    if (result.error) {
-      setMessage(result.error.message);
-      return [];
+  async function refresh() {
+    try {
+      setUser((await db.account.get()).$id);
+    } catch {
+      setSchool('');
+      setUser('');
     }
-    return result.data;
-  });
+  }
+  onMount(() => void refresh());
+  const [schools] = createResource(() => user() || false, listSchools);
   async function login(event: SubmitEvent) {
     event.preventDefault();
-    const result = await db.auth.signInWithPassword({
-      email: email.value,
-      password: password.value,
-    });
-    setMessage(result.error?.message ?? '');
+    try {
+      await db.account.createEmailPasswordSession({ email: email.value, password: password.value });
+      await refresh();
+      setMessage('');
+    } catch {
+      setMessage('Login gagal. Periksa email dan kata sandi.');
+    }
   }
   return (
     <>
@@ -72,8 +59,8 @@ export default function SchoolGate(props: ParentProps) {
           </label>{' '}
           <button
             onClick={async () => {
-              const { error } = await db.auth.signOut();
-              setMessage(error?.message ?? '');
+              await db.account.deleteSession({ sessionId: 'current' });
+              await refresh();
             }}
           >
             Keluar

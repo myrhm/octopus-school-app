@@ -1,6 +1,6 @@
 import { useParams } from '@solidjs/router';
 import { createSignal, For, Show } from 'solid-js';
-import { backend } from './client';
+import { call } from './client';
 import type { StudentQuestionV1 } from '../features/question-import/question-contract';
 import RichText from '../features/student-preview/RichText';
 type Session = { attempt: string; title: string; questions: StudentQuestionV1[] };
@@ -18,19 +18,19 @@ export default function ParticipantExam() {
     try {
       const active = session();
       if (active) {
-        const { error } = await backend!.rpc('submit_exam', {
+        await call('submit_exam', {
           attempt: active.attempt,
           responses: answers(),
         });
-        if (error) throw error;
+
         setDone(true);
         setMessage('Jawaban terkirim.');
       } else {
-        const { data, error } = await backend!.rpc('start_exam', {
+        const data = await call<Session>('start_exam', {
           exam: params.id,
           participant_name: name.value,
         });
-        if (error) throw error;
+
         setSession(data);
         setMessage('');
       }

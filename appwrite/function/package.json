@@ -1,0 +1,6 @@
+{
+  "name": "octopus-function",
+  "private": true,
+  "type": "module",
+  "main": "main.js"
+}

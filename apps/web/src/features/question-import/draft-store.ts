@@ -1,4 +1,4 @@
-import { backend, school } from '../../backend/client';
+import { backend, call, school } from '../../backend/client';
 import type { JSONContent } from '@tiptap/core';
 import { emptyDocument } from './document';
 
@@ -64,23 +64,17 @@ export async function listLocalRecords(): Promise<StoredDraft[]> {
 
 async function listRecords(): Promise<StoredDraft[]> {
   if (!backend) return listLocalRecords();
-  const { data, error } = await backend.from('drafts').select('payload').eq('school_id', school());
-  if (error) throw error;
-  return data
-    .map((row) => row.payload as StoredDraft)
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  return (await call<StoredDraft[]>('drafts')).sort((a, b) =>
+    b.updatedAt.localeCompare(a.updatedAt),
+  );
 }
-
 async function writeRemote(record: StoredDraft, expected: number, schoolId: string) {
-  const values = { payload: record, revision: expected + 1 };
-  const table = backend!.from('drafts');
-  const query =
-    expected === 0
-      ? table.insert({ ...values, id: record.id, school_id: schoolId })
-      : table.update(values).eq('school_id', schoolId).eq('id', record.id).eq('revision', expected);
-  const { data, error } = await query.select('revision').maybeSingle();
-  if (error?.code === '23505' || (!error && !data)) throw new DraftConflict();
-  if (error) throw error;
+  try {
+    await call('save', { record, expected, school: schoolId });
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 409) throw new DraftConflict();
+    throw error;
+  }
 }
 
 export async function importLocalRecord(record: StoredDraft) {
@@ -97,14 +91,7 @@ export async function listTrashedDrafts(): Promise<TrashedDraft[]> {
 
 async function loadRecord(id: string): Promise<StoredDraft | undefined> {
   if (backend) {
-    const { data, error } = await backend
-      .from('drafts')
-      .select('payload')
-      .eq('school_id', school())
-      .eq('id', id)
-      .maybeSingle();
-    if (error) throw error;
-    return data?.payload;
+    return (await call<StoredDraft | null>('draft', { id })) ?? undefined;
   }
   const db = await openDatabase();
   try {
