@@ -4,7 +4,7 @@ import type { Page } from '@playwright/test';
 
 async function openImport(page: Page) {
   await page.goto('/bank-soal');
-  await page.getByRole('button', { name: 'Impor soal', exact: true }).click();
+  await page.getByRole('button', { name: 'Buat bank soal', exact: true }).click();
   await expect(page.getByRole('textbox', { name: 'Isi kumpulan soal' })).toBeVisible();
 }
 
@@ -162,7 +162,7 @@ test('shows a recoverable error when draft storage is unavailable', async ({ pag
   });
   await page.goto('/bank-soal');
   await expect(page.getByRole('heading', { name: 'Bank soal', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Impor soal', exact: true }).click();
+  await page.getByRole('button', { name: 'Buat bank soal', exact: true }).click();
   await expect(page.getByText('Draft belum dapat dibuat.', { exact: false })).toBeVisible();
 });
 

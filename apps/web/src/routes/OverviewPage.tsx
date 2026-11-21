@@ -4,27 +4,14 @@ import BookOpen from 'lucide-solid/icons/book-open';
 import CalendarDays from 'lucide-solid/icons/calendar-days';
 import ClipboardCheck from 'lucide-solid/icons/clipboard-check';
 import FileInput from 'lucide-solid/icons/file-input';
-import Badge from '../components/ui/Badge';
 
 export default function OverviewPage() {
   return (
     <section class="page" aria-labelledby="page-title">
-      <div class="page-heading">
+      <section class="welcome-panel" aria-labelledby="page-title">
         <div>
-          <p class="eyebrow">SELAMAT DATANG</p>
           <h1 id="page-title">Ruang untuk soal dan ujian Anda.</h1>
-          <p class="intro">Lebih sedikit pekerjaan berulang. Lebih banyak ruang untuk mengajar.</p>
-        </div>
-      </div>
-      <section class="welcome-panel" aria-labelledby="welcome-title">
-        <div>
-          <Badge tone="success">Mulai dari yang sudah Anda miliki</Badge>
-          <h2 id="welcome-title">
-            Dokumen soal Anda,
-            <br />
-            awal dari semuanya.
-          </h2>
-          <p>Susun pertanyaan, siapkan ujian, dan lihat hasil belajar dalam satu ruang kerja.</p>
+          <p>Susun draft di bank soal, jadwalkan ujian, dan lihat hasil peserta.</p>
           <A class="button" data-variant="primary" href="/bank-soal">
             <BookOpen size={18} aria-hidden="true" />
             Buka bank soal
@@ -32,12 +19,10 @@ export default function OverviewPage() {
         </div>
         <div class="welcome-visual" aria-hidden="true">
           <img src="/brand/octopus-symbol.png" alt="" width="240" height="240" />
-          <span class="visual-caption">Siap membantu Anda merapikan soal.</span>
         </div>
       </section>
       <div class="section-heading">
-        <h2>Alur kerja yang saling terhubung</h2>
-        <span class="text-muted text-sm">Dari persiapan hingga evaluasi</span>
+        <h2>Kegiatan guru</h2>
       </div>
       <div class="workflow-grid">
         <article class="workflow-card">

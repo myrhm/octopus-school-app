@@ -7,7 +7,7 @@ async function setup(
   html = '<p>Apa ibu kota Indonesia?</p><p>A. Bandung</p><p><strong>B) Jakarta</strong></p><p>(C) Surabaya</p>',
 ) {
   await page.goto('/bank-soal');
-  await page.getByRole('button', { name: 'Impor soal', exact: true }).click();
+  await page.getByRole('button', { name: 'Buat bank soal', exact: true }).click();
   const editor = page.getByRole('textbox', { name: 'Isi kumpulan soal' });
   await expect(editor).toBeVisible();
   await editor.click();

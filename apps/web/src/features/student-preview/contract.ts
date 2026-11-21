@@ -32,6 +32,15 @@ export function copyRichText(content: readonly JSONContent[]): JSONContent[] {
         ...(node.marks ? { marks: node.marks.map(({ type }) => ({ type })) } : {}),
       };
     }
+    if (node.type === 'schoolImage' && /^[a-zA-Z0-9._-]{1,36}$/.test(node.attrs?.fileId ?? ''))
+      return {
+        type: 'schoolImage',
+        attrs: {
+          fileId: node.attrs!.fileId,
+          alt: String(node.attrs?.alt ?? ''),
+          width: Math.max(64, Math.min(960, Number(node.attrs?.width) || 320)),
+        },
+      };
     if (node.type === 'hardBreak') return { type: 'hardBreak' };
     if (!node.type || !blocks.has(node.type)) throw new Error('Unsupported content');
     return {
@@ -76,5 +85,8 @@ export function copyStudentQuestions(source: readonly StudentQuestion[]): Studen
 }
 
 export function hasText(content: readonly JSONContent[]): boolean {
-  return content.some((node) => Boolean(node.text?.trim()) || hasText(node.content ?? []));
+  return content.some(
+    (node) =>
+      node.type === 'schoolImage' || Boolean(node.text?.trim()) || hasText(node.content ?? []),
+  );
 }

@@ -1,7 +1,8 @@
+import { BankLibrary } from '../backend/BankLibrary';
 import { backend } from '../backend/client';
 import { A, useNavigate, useSearchParams } from '@solidjs/router';
 import { createMemo, createResource, createSignal, For, Show, onMount, onCleanup } from 'solid-js';
-import FileInput from 'lucide-solid/icons/file-input';
+import Plus from 'lucide-solid/icons/plus';
 import BookOpen from 'lucide-solid/icons/book-open';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
@@ -68,7 +69,11 @@ export default function QuestionBankPage() {
       const draft = await createDraft();
       navigate(`/bank-soal/impor/${draft.id}`);
     } catch {
-      setError('Draft belum dapat dibuat. Pastikan penyimpanan browser diizinkan, lalu coba lagi.');
+      setError(
+        backend
+          ? 'Draft belum dapat dibuat. Periksa koneksi dan sekolah aktif, lalu coba lagi.'
+          : 'Draft belum dapat dibuat. Pastikan penyimpanan browser diizinkan, lalu coba lagi.',
+      );
     } finally {
       setCreating(false);
     }
@@ -81,7 +86,7 @@ export default function QuestionBankPage() {
           <h1 id="page-title">Bank soal</h1>
           <p class="intro">
             {backend
-              ? 'Susun pertanyaan dari draft sekolah Anda.'
+              ? 'Buat bank soal, lalu ketik atau tempel pertanyaan ke dalam draft.'
               : 'Mulai dari draft lokal, lalu susun pertanyaan dari dokumen Anda.'}
           </p>
         </div>
@@ -90,8 +95,8 @@ export default function QuestionBankPage() {
             Contoh pratinjau siswa
           </A>
           <Button onClick={() => void startImport()} disabled={creating()}>
-            <FileInput size={18} aria-hidden="true" />
-            {creating() ? 'Menyiapkan draft…' : 'Impor soal'}
+            <Plus size={18} aria-hidden="true" />
+            {creating() ? 'Menyiapkan draft…' : 'Buat bank soal'}
           </Button>
         </div>
       </div>
@@ -127,8 +132,9 @@ export default function QuestionBankPage() {
       </Show>
       <div class="local-draft-note">
         <p>
-          Draft hanya tersimpan di browser dan perangkat ini. Belum ada akun atau sinkronisasi
-          antarperangkat.
+          {backend
+            ? 'Draft dapat dibuka dari perangkat lain dengan akun dan sekolah yang sama.'
+            : 'Draft hanya tersimpan di browser dan perangkat ini.'}
         </p>
         <Badge tone="info">{backend ? 'Penyimpanan sekolah' : 'Penyimpanan lokal'}</Badge>
       </div>
@@ -182,7 +188,7 @@ export default function QuestionBankPage() {
                     ? 'Coba nama lain atau reset pencarian.'
                     : inTrash()
                       ? 'Draft yang dipindahkan ke Sampah akan muncul di sini dan dapat dipulihkan.'
-                      : 'Pilih Impor soal, tempel isi dokumen, lalu pisahkan menjadi beberapa soal. Draft akan tersimpan otomatis di sini.'}
+                      : 'Pilih Buat bank soal, tempel isi dokumen, lalu pisahkan menjadi beberapa soal. Draft akan tersimpan otomatis di sini.'}
                 </p>
               </section>
             }
@@ -203,11 +209,16 @@ export default function QuestionBankPage() {
                         </Show>
                       </h2>
                       <p class="field-hint">
-                        {draft.questionCount} soal · {inTrash() ? 'Dipindahkan' : 'Diperbarui'}{' '}
-                        {new Date(draft.updatedAt).toLocaleString('id-ID', {
-                          dateStyle: 'medium',
-                          timeStyle: 'short',
-                        })}
+                        {Number.isInteger(draft.questionCount)
+                          ? draft.questionCount + ' soal · '
+                          : ''}{' '}
+                        {inTrash() ? 'Dipindahkan' : 'Diperbarui'}{' '}
+                        {Number.isFinite(Date.parse(draft.updatedAt))
+                          ? new Date(draft.updatedAt).toLocaleString('id-ID', {
+                              dateStyle: 'medium',
+                              timeStyle: 'short',
+                            })
+                          : '—'}
                       </p>
                     </div>
                     <div class="draft-item-actions">
@@ -245,6 +256,9 @@ export default function QuestionBankPage() {
             </ul>
           </Show>
         </Show>
+      </Show>
+      <Show when={backend && !inTrash()}>
+        <BankLibrary />
       </Show>
     </section>
   );

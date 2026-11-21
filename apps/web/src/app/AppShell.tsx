@@ -8,7 +8,7 @@ import { Dynamic } from 'solid-js/web';
 import { navigation } from './navigation';
 import Brand from '../components/Brand';
 import ThemeSelect from '../components/ThemeSelect';
-import Badge from '../components/ui/Badge';
+
 import { AccountControls } from '../backend/SchoolGate';
 
 function Navigation(props: { onNavigate?: () => void }) {
@@ -66,15 +66,6 @@ export default function AppShell(props: ParentProps) {
         </A>
         <p class="nav-caption">RUANG KERJA</p>
         <Navigation />
-        <div class="sidebar-note">
-          <span class="note-line" />
-          Soal tertata.
-          <br />
-          Ujian lebih sederhana.
-        </div>
-        <div class="sidebar-bottom">
-          <span class="version-label">Octopus · Pratinjau</span>
-        </div>
       </aside>
       <div class="workspace">
         <header class="workspace-header">
@@ -98,6 +89,9 @@ export default function AppShell(props: ParentProps) {
                       Pilih ruang kerja Anda.
                     </Dialog.Description>
                     <Navigation onNavigate={() => setMenuOpen(false)} />
+                    <div class="drawer-account">
+                      <AccountControls />
+                    </div>
                   </Dialog.Content>
                 </Dialog.Portal>
               </Dialog>
@@ -116,10 +110,6 @@ export default function AppShell(props: ParentProps) {
         <main id="main-content" tabindex="-1">
           {props.children}
         </main>
-        <footer class="app-footer">
-          <span>Disiapkan untuk kegiatan belajar.</span>
-          <Badge tone="info">Pratinjau antarmuka</Badge>
-        </footer>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import { Dialog } from '@kobalte/core/dialog';
 import { ID, AppwriteException, type Models } from 'appwrite';
 import {
+  createEffect,
   createContext,
   useContext,
   createResource,
@@ -26,6 +27,11 @@ function createSession() {
   const [busy, setBusy] = createSignal(false);
   const [message, setMessage] = createSignal('');
   const [schools, { refetch }] = createResource(() => user()?.$id || false, listSchools);
+  createEffect(() => {
+    if (!user() || schools.loading || schools.error) return;
+    const available = schools() ?? [];
+    if (!available.some((item) => item.id === school())) setSchool(available[0]?.id ?? '');
+  });
   async function refresh() {
     try {
       setUser(await backend!.account.get());
@@ -138,19 +144,20 @@ export function AccountControls() {
                   </Button>
                 }
               >
-                <label class="account-school">
-                  <span class="sr-only">Sekolah aktif</span>
-                  <select
-                    class="text-input"
-                    value={school()}
-                    onChange={(e) => setSchool(e.currentTarget.value)}
-                  >
-                    <option value="">Pilih sekolah</option>
-                    <For each={s.schools()}>
-                      {(item) => <option value={item.id}>{item.name}</option>}
-                    </For>
-                  </select>
-                </label>
+                <Show when={(s.schools()?.length ?? 0) > 1}>
+                  <label class="account-school">
+                    <span class="sr-only">Sekolah aktif</span>
+                    <select
+                      class="text-input"
+                      value={school()}
+                      onChange={(e) => setSchool(e.currentTarget.value)}
+                    >
+                      <For each={s.schools()}>
+                        {(item) => <option value={item.id}>{item.name}</option>}
+                      </For>
+                    </select>
+                  </label>
+                </Show>
               </Show>
             </Show>
             <Button variant="ghost" disabled={s.busy()} onClick={() => void s.logout()}>

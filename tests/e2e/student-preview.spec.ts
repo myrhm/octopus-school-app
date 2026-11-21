@@ -15,19 +15,23 @@ test('tries answers with keyboard and pointer, navigates, and resets on reload',
   await page.keyboard.press('Space');
   await page.keyboard.press('ArrowDown');
   await expect(radios.nth(1)).toBeChecked();
+  const mobile = info.project.name.startsWith('mobile');
+  const navigator = page.getByRole('navigation', { name: 'Nomor soal' });
+  if (mobile) await page.getByRole('button', { name: 'Buka daftar 3 soal' }).click();
   await page.getByRole('button', { name: 'Berikutnya' }).click();
+  await expect(navigator).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Soal 2 dari 3' })).toBeFocused();
   await expect(page.getByRole('radio', { checked: true })).toHaveCount(0);
   // The full option card is a native label hit area, including its rich text.
   await page.locator('.preview-option').filter({ hasText: 'Kebiasaan sederhana' }).click();
   await expect(radios.nth(1)).toBeChecked();
   await page.getByRole('button', { name: 'Sebelumnya' }).click();
+  await expect(navigator).toBeVisible();
   await expect(radios.nth(1)).toBeChecked();
   await page.getByRole('button', { name: 'Hapus pilihan' }).click();
   await expect(page.getByRole('radio', { checked: true })).toHaveCount(0);
-  if (info.project.name.startsWith('mobile'))
-    await page.getByRole('button', { name: 'Buka daftar 3 soal' }).click();
   await page.getByRole('button', { name: 'Soal 3, belum dipilih', exact: true }).click();
+  if (mobile) await expect(navigator).toBeHidden();
   await expect(page.getByRole('heading', { name: 'Soal 3 dari 3' })).toBeFocused();
   await expect(page.getByRole('button', { name: 'Berikutnya' })).toBeDisabled();
   await expect(page.getByText('Pilihan jawaban belum ditambahkan.')).toBeVisible();
@@ -39,7 +43,7 @@ test('tries answers with keyboard and pointer, navigates, and resets on reload',
 
 test('reads saved draft text without changing its revision or document', async ({ page }) => {
   await page.goto('/bank-soal');
-  await page.getByRole('button', { name: 'Impor soal', exact: true }).click();
+  await page.getByRole('button', { name: 'Buat bank soal', exact: true }).click();
   const editor = page.getByRole('textbox', { name: 'Isi kumpulan soal' });
   await editor.fill('Pertanyaan tersimpan');
   await expect(page.getByText('Tersimpan di browser ini', { exact: true })).toBeVisible();

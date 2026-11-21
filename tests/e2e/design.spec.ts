@@ -104,7 +104,7 @@ test('resets the local draft search', async ({ page }) => {
   await page.getByRole('searchbox', { name: 'Cari draft soal' }).fill('Matematika');
   await page.getByRole('button', { name: 'Reset filter' }).click();
   await expect(page.getByRole('searchbox', { name: 'Cari draft soal' })).toHaveValue('');
-  await expect(page.getByRole('button', { name: 'Impor soal' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Buat bank soal' })).toBeEnabled();
 });
 
 test('opens the mobile menu, contains focus, and closes after navigation', async ({

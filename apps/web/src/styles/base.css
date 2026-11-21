@@ -249,12 +249,12 @@
   flex-direction: column;
 }
 .workspace-header {
-  min-height: 80px;
+  min-height: 60px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 16px 40px;
+  padding: 8px 32px;
   border-bottom: 1px solid var(--border-subtle);
   background: var(--surface);
 }
@@ -319,7 +319,7 @@ main {
   width: 100%;
   max-width: 1320px;
   margin: 0 auto;
-  padding: 40px;
+  padding: 28px 32px;
 }
 .page-heading {
   display: flex;
@@ -327,7 +327,7 @@ main {
   justify-content: space-between;
   align-items: center;
   gap: 24px;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 .eyebrow {
   color: var(--primary);
@@ -355,7 +355,7 @@ main {
   border: 1px solid var(--border-subtle);
   border-radius: 20px;
   background: var(--surface);
-  padding: 36px;
+  padding: 24px;
   position: relative;
   overflow: hidden;
 }
@@ -387,8 +387,8 @@ main {
   gap: 14px;
 }
 .welcome-visual img {
-  width: 224px;
-  height: 224px;
+  width: 116px;
+  height: 116px;
   object-fit: contain;
 }
 .visual-caption {
@@ -402,7 +402,7 @@ main {
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
-  margin: 36px 0 18px;
+  margin: 24px 0 12px;
 }
 .workflow-grid {
   display: grid;
@@ -464,10 +464,10 @@ main {
   background: var(--surface);
   border: 1px solid var(--border-subtle);
   border-radius: 16px;
-  padding: 28px;
+  padding: clamp(16px, 2vw, 24px);
 }
 .empty-state {
-  min-height: 400px;
+  min-height: 220px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -837,7 +837,7 @@ main {
     display: block;
   }
   .workspace-header {
-    padding: 16px 24px;
+    padding: 8px 20px;
   }
   .header-school,
   .header-divider {
@@ -876,11 +876,11 @@ main {
     gap: 10px;
   }
   .workspace-header {
-    padding: 12px 20px;
-    min-height: 72px;
+    padding: 6px 14px;
+    min-height: 56px;
   }
   .page {
-    padding: 28px 20px;
+    padding: 20px 16px;
   }
   .header-page {
     font-size: 0.875rem;
@@ -901,7 +901,7 @@ main {
   }
   .empty-state {
     min-height: 380px;
-    padding: 28px 20px;
+    padding: 20px 16px;
   }
   .bank-toolbar {
     padding: 20px;

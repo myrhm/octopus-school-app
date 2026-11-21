@@ -1,3 +1,6 @@
+import Members from '../backend/Members';
+import { Show } from 'solid-js';
+import { school } from '../backend/client';
 import { backend } from '../backend/client';
 import ThemeSelect from '../components/ThemeSelect';
 import Modal from '../components/ui/Modal';
@@ -9,6 +12,9 @@ export default function SettingsPage() {
       <p class="eyebrow">SESUAIKAN RUANG KERJA</p>
       <h1 id="page-title">Pengaturan</h1>
       <p class="intro">Pilih tampilan yang nyaman untuk Anda.</p>
+      <Show when={backend && school()}>
+        <Members />
+      </Show>
       <section class="panel settings-panel">
         <div>
           <h2>Tema tampilan</h2>

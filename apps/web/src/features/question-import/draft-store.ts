@@ -53,7 +53,9 @@ export async function listLocalRecords(): Promise<StoredDraft[]> {
       const request = tx.objectStore('drafts').getAll();
       tx.oncomplete = () =>
         resolve(
-          (request.result as StoredDraft[]).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+          (request.result as StoredDraft[]).sort((a, b) =>
+            (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''),
+          ),
         );
       tx.onabort = tx.onerror = () => reject(new Error('Daftar draft tidak dapat dibaca.'));
     });
@@ -65,7 +67,7 @@ export async function listLocalRecords(): Promise<StoredDraft[]> {
 async function listRecords(): Promise<StoredDraft[]> {
   if (!backend) return listLocalRecords();
   return (await call<StoredDraft[]>('drafts')).sort((a, b) =>
-    b.updatedAt.localeCompare(a.updatedAt),
+    (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''),
   );
 }
 async function writeRemote(record: StoredDraft, expected: number, schoolId: string) {
