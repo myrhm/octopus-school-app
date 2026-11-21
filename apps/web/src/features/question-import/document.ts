@@ -24,6 +24,10 @@ export const QuestionBlock = ExtensionNode.create({
   addAttributes() {
     return {
       id: { default: null },
+      kind: { default: 'single' },
+      weight: { default: 1 },
+      keys: { default: [] },
+      accepted: { default: [] },
       options: { default: [] },
       correctOptionId: { default: null },
       optionSources: { default: {} },
