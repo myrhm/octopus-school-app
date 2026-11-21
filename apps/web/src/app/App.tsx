@@ -1,3 +1,5 @@
+import { AcceptInvitation } from '../backend/Members';
+import { Monitoring, Grades } from '../backend/Reports';
 import ExamManager from '../backend/ExamManager';
 import ParticipantExam from '../backend/ParticipantExam';
 import SchoolGate, { SchoolSession } from '../backend/SchoolGate';
@@ -33,7 +35,7 @@ function RouteShell(props: ParentProps) {
   const location = useLocation();
   return (
     <SchoolSession>
-      {backend && location.pathname.startsWith('/e/') ? (
+      {backend && (location.pathname.startsWith('/e/') || location.pathname === '/undangan') ? (
         props.children
       ) : backend ? (
         <WorkspaceShell>
@@ -61,8 +63,9 @@ export default function App() {
         <Route path="/pratinjau-siswa/:id" component={StudentPreviewPage} />
         <Route path="/ujian" component={backend ? ExamManager : UpcomingPage} />
         <Route path="/e/:id" component={backend ? ParticipantExam : NotFoundPage} />
-        <Route path="/monitoring" component={backend ? ExamManager : UpcomingPage} />
-        <Route path="/nilai" component={backend ? ExamManager : UpcomingPage} />
+        <Route path="/monitoring" component={backend ? Monitoring : UpcomingPage} />
+        <Route path="/nilai" component={backend ? Grades : UpcomingPage} />
+        <Route path="/undangan" component={backend ? AcceptInvitation : NotFoundPage} />
         <Route path="/pengaturan" component={SettingsPage} />
         <Route path="/komponen" component={ComponentsPage} />
         <Route path="*404" component={NotFoundPage} />
