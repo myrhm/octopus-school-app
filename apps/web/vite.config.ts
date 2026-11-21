@@ -28,6 +28,7 @@ export default defineConfig({
   preview: { port: 5174, strictPort: true },
   test: {
     environment: 'jsdom',
+    env: { VITE_APPWRITE_ENDPOINT: '', VITE_APPWRITE_PROJECT_ID: '' },
     include: ['src/**/*.test.{ts,tsx}'],
     setupFiles: ['./src/test/setup.ts'],
     clearMocks: true,

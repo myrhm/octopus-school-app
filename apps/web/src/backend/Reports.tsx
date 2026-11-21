@@ -27,6 +27,7 @@ type Exam = {
   title: string;
   state: string;
   restricted: boolean;
+  accessMode?: string;
   released: boolean;
   events?: { type: string; participant: string; at: string }[];
   attempts: Attempt[];
@@ -66,13 +67,24 @@ function Report(props: { grades: boolean }) {
   const [message, setMessage] = createSignal('');
   const [busy, setBusy] = createSignal(false);
   onMount(() => {
-    if (!props.grades) {
-      const timer = setInterval(() => {
-        if (!document.hidden && !exams.loading) void refetch();
-      }, 30000);
-      onCleanup(() => clearInterval(timer));
-    }
+    const timer = setInterval(() => {
+      if (!document.hidden && !exams.loading) void refetch();
+    }, 30000);
+    onCleanup(() => clearInterval(timer));
   });
+  async function refreshResults() {
+    if (busy()) return;
+    setBusy(true);
+    setMessage('Memperbarui hasil…');
+    try {
+      await refetch();
+      setMessage('Hasil diperbarui. Jawaban sesi yang waktunya habis sudah diproses.');
+    } catch {
+      setMessage('Hasil belum dapat diperbarui. Silakan coba lagi.');
+    } finally {
+      setBusy(false);
+    }
+  }
   async function action(name: string, body: Record<string, unknown>) {
     if (busy()) return;
     setBusy(true);
@@ -91,6 +103,13 @@ function Report(props: { grades: boolean }) {
     <section class="page exam-manager">
       <h1>{props.grades ? 'Nilai dan analisis' : 'Monitoring ujian'}</h1>
       <p role="status">{message()}</p>
+      <Button
+        variant="secondary"
+        disabled={busy() || exams.loading}
+        onClick={() => void refreshResults()}
+      >
+        Perbarui hasil
+      </Button>
       <Show when={props.grades}>
         <Button
           disabled={!exams()?.length}
@@ -115,7 +134,7 @@ function Report(props: { grades: boolean }) {
               when={props.grades}
               fallback={
                 <>
-                  <Show when={e.restricted}>
+                  <Show when={e.restricted && e.accessMode !== 'credentials'}>
                     <Button
                       onClick={() =>
                         void call<string>('credential', { id: e.id })

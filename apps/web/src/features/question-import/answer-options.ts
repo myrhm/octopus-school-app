@@ -21,7 +21,12 @@ export const OptionAnchor = ExtensionNode.create({
   renderHTML({ node }) {
     return [
       'span',
-      { class: 'option-anchor', 'data-option-id': node.attrs.optionId, 'aria-hidden': 'true' },
+      {
+        class: 'option-anchor',
+        'data-option-id': node.attrs.optionId,
+        contenteditable: 'false',
+        'aria-hidden': 'true',
+      },
       '',
     ];
   },
@@ -29,13 +34,55 @@ export const OptionAnchor = ExtensionNode.create({
 
 type Result = { transaction: Transaction } | { error: string };
 const labelPattern = /^\s*(?:\(([A-Za-z])\)|([A-Za-z])[.)])\s+/;
+const bulletPattern = /^\s*[-–—•●▪◦‣∙\uF0B7](?:[ \t]+|(?=[^\s\d])|$)/;
+
+function optionPrefix(text: string) {
+  let length = 0;
+  // Word/PDF pastes can contain both a literal bullet and an A/B/C label.
+  for (let i = 0; i < 8; i++) {
+    const bullet = text.slice(length).match(bulletPattern);
+    if (!bullet) break;
+    length += bullet[0].length;
+  }
+  const label = text.slice(length).match(labelPattern);
+  if (label) length += label[0].length;
+  return length ? { length } : undefined;
+}
+
+function whitespaceOnly(node: Node): boolean {
+  if (node.isText) return !node.text?.trim();
+  if (node.isLeaf) return node.type.name === 'hardBreak';
+  let empty = true;
+  node.forEach((child) => {
+    if (!whitespaceOnly(child)) empty = false;
+  });
+  return empty;
+}
+
+function trimEdges(content: Fragment): Fragment {
+  const nodes: Node[] = [];
+  content.forEach((node) => nodes.push(node));
+  while (nodes.length && whitespaceOnly(nodes[0]!)) nodes.shift();
+  while (nodes.length && whitespaceOnly(nodes[nodes.length - 1]!)) nodes.pop();
+  return Fragment.fromArray(nodes);
+}
 
 function stripLabel(content: Fragment): Fragment {
+  content = trimEdges(content);
+  // Only remove the outer list that supplies the option marker. Lists within
+  // the answer stay intact, and the original slice remains available to restore.
+  while (content.childCount === 1) {
+    const list = content.firstChild!;
+    if (!['bulletList', 'orderedList'].includes(list.type.name)) break;
+    const items = trimEdges(list.content);
+    if (items.childCount !== 1 || items.firstChild?.type.name !== 'listItem') break;
+    content = trimEdges(items.firstChild.content);
+  }
   const first = content.firstChild;
   if (!first?.isTextblock) return content;
-  const match = first.textContent.match(labelPattern);
+  const match = optionPrefix(first.textContent);
   if (!match) return content;
-  return Fragment.from(first.copy(first.content.cut(match[0].length))).append(
+  return Fragment.from(first.copy(first.content.cut(match.length))).append(
     content.cut(first.nodeSize),
   );
 }
@@ -76,15 +123,33 @@ export function extractOptions(state: EditorState, multiple = false): Result {
   });
   if (hasAnchor)
     return {
-      error: 'Seleksi ini mencakup lokasi opsi yang sudah dipindahkan. Pilih hanya teks baru.',
+      error:
+        'Seleksi mencakup jawaban yang sudah menjadi opsi. Pilih hanya teks jawaban baru, atau gunakan Kembalikan ke soal sebelum mengekstraknya lagi.',
     };
-  if (!state.doc.textBetween(from, to).trim())
-    return { error: 'Seleksi belum berisi teks jawaban.' };
+  let hasImage = false;
+  state.doc.nodesBetween(from, to, (node) => {
+    if (node.type.name === 'schoolImage') hasImage = true;
+  });
+  if (!state.doc.textBetween(from, to).trim() && !hasImage)
+    return { error: 'Seleksi belum berisi teks atau gambar jawaban.' };
 
-  const starts: Array<{ position: number; label: string }> = [];
+  const starts: Array<{ position: number; end?: number }> = [];
   if (multiple) {
     let unsupported = false;
     state.doc.nodesBetween(from, to, (node, position, parent) => {
+      if (node.type.name === 'listItem') {
+        // One top-level HTML list item is one answer, including wrapped lines
+        // and paragraphs. Its nested lists belong to that same answer.
+        if (state.doc.resolve(position).depth !== 2) {
+          unsupported = true;
+          return false;
+        }
+        const start = Math.max(from, position + 1);
+        const end = Math.min(to, position + node.nodeSize - 1);
+        if (end > start && state.doc.textBetween(start, end).trim())
+          starts.push({ position: start, end });
+        return false;
+      }
       if (!node.isTextblock) return;
       if (parent?.type.name !== 'question') {
         unsupported = true;
@@ -96,9 +161,10 @@ export function extractOptions(state: EditorState, multiple = false): Result {
         const finish = Math.min(end, to);
         if (finish <= start) return;
         const text = state.doc.textBetween(start, finish);
-        const match = text.match(labelPattern);
-        if (match) starts.push({ position: start, label: (match[1] ?? match[2])!.toUpperCase() });
-        else if (!starts.length && text.trim()) unsupported = true;
+        const match = optionPrefix(text);
+        if (match) starts.push({ position: start });
+        else if (text.trim() && (!starts.length || starts[starts.length - 1]!.end !== undefined))
+          unsupported = true;
       };
       node.forEach((child, offset) => {
         if (child.type.name === 'hardBreak') {
@@ -109,31 +175,28 @@ export function extractOptions(state: EditorState, multiple = false): Result {
       line(position + 1 + node.content.size);
       return false;
     });
-    if (
-      unsupported ||
-      starts.length < 2 ||
-      starts.some(
-        (item, index) =>
-          index > 0 && item.label.charCodeAt(0) !== starts[index - 1]!.label.charCodeAt(0) + 1,
-      )
-    )
+    if (unsupported || starts.length < 2)
       return {
         error:
-          'Batas opsi ambigu. Seleksi label berurutan seperti A., B), (C), atau ekstrak satu per satu.',
+          'Format beberapa opsi belum terbaca. Pilih minimal dua jawaban dalam daftar atau pada baris terpisah dengan A., B), (C), atau bullet. Jangan sertakan teks pertanyaan; untuk struktur bertingkat yang ambigu, pindahkan satu jawaban dahulu.',
       };
-  } else starts.push({ position: from, label: '' });
+  } else starts.push({ position: from });
 
   const options: QuestionOptionV1[] = [];
   const sources: Record<string, unknown> = { ...active.node.attrs.optionSources };
   const ranges = starts.map((start, index) => ({
     from: start.position,
-    to: starts[index + 1]?.position ?? to,
+    to: start.end ?? starts[index + 1]?.position ?? to,
     id: crypto.randomUUID(),
   }));
   for (const range of ranges) {
     const original = rangeContent(state, range.from, range.to);
     const content = stripLabel(original);
-    if (!content.textBetween(0, content.size).trim())
+    let containsImage = false;
+    content.descendants((node) => {
+      if (node.type.name === 'schoolImage') containsImage = true;
+    });
+    if (!content.textBetween(0, content.size).trim() && !containsImage)
       return { error: 'Ada opsi kosong. Lengkapi isi opsi sebelum mengekstraknya.' };
     options.push({ id: range.id, content: content.toJSON() as QuestionOptionV1['content'] });
     sources[range.id] = {

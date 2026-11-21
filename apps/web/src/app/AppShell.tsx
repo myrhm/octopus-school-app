@@ -2,14 +2,16 @@ import { A, useLocation } from '@solidjs/router';
 import { Dialog } from '@kobalte/core/dialog';
 import Menu from 'lucide-solid/icons/menu';
 import X from 'lucide-solid/icons/x';
+import BookOpen from 'lucide-solid/icons/book-open';
 import { createEffect, createSignal, For, onCleanup } from 'solid-js';
 import type { ParentProps } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import { navigation } from './navigation';
 import Brand from '../components/Brand';
 import ThemeSelect from '../components/ThemeSelect';
+import GuideContent from '../components/GuideContent';
 
-import { AccountControls } from '../backend/SchoolGate';
+import { AccountControls, useSchoolSession } from '../backend/SchoolGate';
 
 function Navigation(props: { onNavigate?: () => void }) {
   return (
@@ -34,6 +36,14 @@ function Navigation(props: { onNavigate?: () => void }) {
 export default function AppShell(props: ParentProps) {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = createSignal(false);
+  const [guideOpen, setGuideOpen] = createSignal(false);
+  const session = useSchoolSession();
+  createEffect(() => {
+    if (session.open()) {
+      setMenuOpen(false);
+      setGuideOpen(false);
+    }
+  });
   const desktopMedia = window.matchMedia('(min-width: 1024px)');
   const closeDesktopMenu = (event: MediaQueryListEvent) => {
     if (event.matches) setMenuOpen(false);
@@ -48,6 +58,7 @@ export default function AppShell(props: ParentProps) {
     );
     document.title = page ? `${page.label} · Octopus` : 'Octopus';
     setMenuOpen(false);
+    setGuideOpen(false);
   });
   const pageLabel = () =>
     navigation.find(
@@ -103,6 +114,40 @@ export default function AppShell(props: ParentProps) {
             <span class="header-page">{pageLabel()}</span>
           </div>
           <div class="workspace-account-actions">
+            <Dialog open={guideOpen()} onOpenChange={setGuideOpen}>
+              <Dialog.Trigger
+                class="button header-guide"
+                data-variant="ghost"
+                aria-label="Panduan penggunaan"
+                title="Panduan penggunaan"
+                data-active={guideOpen()}
+              >
+                <BookOpen size={18} aria-hidden="true" />
+                <span>Panduan</span>
+              </Dialog.Trigger>
+              <Dialog.Portal>
+                <Dialog.Overlay class="modal-overlay" />
+                <div class="modal-positioner">
+                  <Dialog.Content class="modal-content guide-dialog">
+                    <header class="guide-dialog-header">
+                      <div class="modal-heading">
+                        <Dialog.Title>Panduan penggunaan</Dialog.Title>
+                        <Dialog.CloseButton class="icon-button" aria-label="Tutup panduan">
+                          <X size={20} aria-hidden="true" />
+                        </Dialog.CloseButton>
+                      </div>
+                      <Dialog.Description class="field-hint">
+                        Dari membuat akun hingga melihat hasil ujian. Gulir untuk membaca
+                        langkah-langkahnya.
+                      </Dialog.Description>
+                    </header>
+                    <div class="guide-dialog-body">
+                      <GuideContent />
+                    </div>
+                  </Dialog.Content>
+                </div>
+              </Dialog.Portal>
+            </Dialog>
             <AccountControls />
             <ThemeSelect />
           </div>

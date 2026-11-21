@@ -4,7 +4,7 @@ import ExamManager from '../backend/ExamManager';
 import ParticipantExam from '../backend/ParticipantExam';
 import SchoolGate, { SchoolSession } from '../backend/SchoolGate';
 import { backend } from '../backend/client';
-import { Route, Router, useLocation } from '@solidjs/router';
+import { Navigate, Route, Router, useLocation } from '@solidjs/router';
 import { Show } from 'solid-js';
 import type { ParentProps } from 'solid-js';
 import AppShell from './AppShell';
@@ -18,6 +18,7 @@ import { ThemeProvider } from './theme';
 import QuestionImportPage from '../routes/QuestionImportPage';
 import StudentPreviewPage from '../routes/StudentPreviewPage';
 import PreviewShell from '../features/student-preview/PreviewShell';
+import TeacherAccessGuard from './TeacherAccessGuard';
 
 function WorkspaceShell(props: ParentProps) {
   const location = useLocation();
@@ -35,12 +36,13 @@ function RouteShell(props: ParentProps) {
   const location = useLocation();
   return (
     <SchoolSession>
+      <TeacherAccessGuard />
       {backend && (location.pathname.startsWith('/e/') || location.pathname === '/undangan') ? (
         props.children
       ) : backend ? (
         <WorkspaceShell>
           <Show
-            when={location.pathname === '/'}
+            when={location.pathname === '/' || location.pathname === '/panduan'}
             fallback={<SchoolGate>{props.children}</SchoolGate>}
           >
             {props.children}
@@ -58,6 +60,7 @@ export default function App() {
     <ThemeProvider>
       <Router root={RouteShell}>
         <Route path="/" component={OverviewPage} />
+        <Route path="/panduan" component={() => <Navigate href="/" />} />
         <Route path="/bank-soal" component={QuestionBankPage} />
         <Route path="/bank-soal/impor/:id" component={QuestionImportPage} />
         <Route path="/pratinjau-siswa/:id" component={StudentPreviewPage} />

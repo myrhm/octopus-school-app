@@ -177,7 +177,11 @@ describe('answer options', () => {
   });
 
   it('does not change an ambiguous selection or text across questions', () => {
-    let state = selectText(stateFor(['A. One', 'C. Three']), 'A. One', 'C. Three');
+    let state = selectText(
+      stateFor(['A. One', 'Unlabelled answer']),
+      'A. One',
+      'Unlabelled answer',
+    );
     expect(extractOptions(state, true)).toHaveProperty('error');
     expect(readOptions(state.doc.firstChild!.attrs.options)).toHaveLength(0);
     const doc = schema.node('doc', null, [

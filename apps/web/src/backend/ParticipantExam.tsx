@@ -1,6 +1,6 @@
 import Button from '../components/ui/Button';
 import { useParams } from '@solidjs/router';
-import { createSignal, For, Show, onMount, onCleanup } from 'solid-js';
+import { createResource, createSignal, For, Show, onMount, onCleanup } from 'solid-js';
 import { participantCall } from './participant-client';
 import type { StudentQuestionV1 } from '../features/question-import/question-contract';
 import RichText from '../features/student-preview/RichText';
@@ -17,6 +17,13 @@ export default function ParticipantExam() {
   const params = useParams();
   const call = <T,>(action: string, input: Record<string, unknown>) =>
     participantCall<T>(params.id!, action, input);
+  const [entry, { refetch: reloadEntry }] = createResource(
+    () => params.id,
+    () => call<{ accessMode: string }>('exam_entry', {}),
+  );
+  const [showPassword, setShowPassword] = createSignal(false);
+  let participantId!: HTMLInputElement;
+  let password!: HTMLInputElement;
   const [session, setSession] = createSignal<Session>();
   const [answers, setAnswers] = createSignal<Record<string, string | string[]>>({});
   const [message, setMessage] = createSignal('');
@@ -178,8 +185,10 @@ export default function ParticipantExam() {
       } else {
         const data = await call<Session>('start_exam', {
           exam: params.id,
-          participant_name: name.value,
-          code: code.value,
+          participant_name: name?.value ?? '',
+          code: code?.value ?? '',
+          participantId: participantId?.value ?? '',
+          password: password?.value ?? '',
         });
 
         setSession(data);
@@ -190,8 +199,17 @@ export default function ParticipantExam() {
         remember();
         setMessage('Ujian dimulai.');
       }
-    } catch {
-      setMessage('Permintaan gagal. Periksa koneksi dan jadwal ujian.');
+    } catch (error) {
+      const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
+      setMessage(
+        code === 401
+          ? 'ID peserta atau password tidak sesuai. Periksa kembali data dari guru.'
+          : code === 409
+            ? 'Peserta sudah memiliki sesi. Gunakan tab/perangkat sebelumnya, atau minta guru mereset password untuk pindah perangkat.'
+            : code === 429
+              ? 'Terlalu banyak percobaan masuk. Tunggu satu menit sebelum mencoba kembali.'
+              : 'Permintaan gagal. Periksa koneksi, jadwal, atau hubungi guru jika akses dicabut.',
+      );
     } finally {
       setBusy(false);
     }
@@ -220,21 +238,76 @@ export default function ParticipantExam() {
             when={session()}
             fallback={
               <>
-                <label>
-                  Nama peserta
-                  <input
-                    class="text-input"
-                    name="participant"
-                    autocomplete="name"
-                    ref={name}
-                    required
-                    maxlength={100}
-                  />
-                </label>
-                <label>
-                  Kode peserta (jika diminta)
-                  <input ref={code} class="text-input" />
-                </label>
+                <Show when={entry.error}>
+                  <p role="alert">
+                    Informasi akses ujian belum dapat dimuat. Periksa koneksi atau tautan dari guru.
+                  </p>
+                  <Button type="button" variant="secondary" onClick={() => void reloadEntry()}>
+                    Coba lagi
+                  </Button>
+                </Show>
+                <Show when={!entry.loading && !entry.error}>
+                  <Show
+                    when={entry()?.accessMode === 'credentials'}
+                    fallback={
+                      <>
+                        <label class="field">
+                          Nama peserta
+                          <input
+                            class="text-input"
+                            name="participant"
+                            autocomplete="name"
+                            ref={name}
+                            required
+                            maxlength={100}
+                          />
+                        </label>
+                        <Show when={entry()?.accessMode === 'legacy'}>
+                          <label class="field">
+                            Kode peserta
+                            <input ref={code} class="text-input" required />
+                          </label>
+                        </Show>
+                      </>
+                    }
+                  >
+                    <label class="field">
+                      ID peserta
+                      <input
+                        class="text-input"
+                        ref={participantId}
+                        autocomplete="username"
+                        autocapitalize="characters"
+                        spellcheck={false}
+                        required
+                        maxlength={40}
+                      />
+                    </label>
+                    <label class="field">
+                      Password peserta
+                      <input
+                        class="text-input"
+                        ref={password}
+                        type={showPassword() ? 'text' : 'password'}
+                        autocomplete="current-password"
+                        required
+                        maxlength={128}
+                      />
+                    </label>
+                    <Button
+                      variant="ghost"
+                      type="button"
+                      aria-pressed={showPassword()}
+                      onClick={() => setShowPassword(!showPassword())}
+                    >
+                      {showPassword() ? 'Sembunyikan password' : 'Tampilkan password'}
+                    </Button>
+                    <p class="field-hint">
+                      Gunakan ID dan password yang dibagikan guru. Jika hilang atau perlu pindah
+                      perangkat, hubungi guru untuk reset password.
+                    </p>
+                  </Show>
+                </Show>
               </>
             }
           >
@@ -318,7 +391,15 @@ export default function ParticipantExam() {
               </>
             )}
           </Show>
-          <Button type="submit" disabled={busy() || expired() || !!restriction()}>
+          <Button
+            type="submit"
+            disabled={
+              busy() ||
+              expired() ||
+              !!restriction() ||
+              (!session() && (entry.loading || !!entry.error))
+            }
+          >
             {session() ? 'Kirim jawaban' : 'Mulai ujian'}
           </Button>
         </form>

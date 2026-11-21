@@ -74,10 +74,9 @@ test('consumes a pasted trailing soft-break delimiter, but keeps inline percent 
 }) => {
   await openImport(page);
   await paste(page, '<p>Use %%% in a sentence.<br>%%%</p>', 'Use %%% in a sentence.\n%%%');
-  await page.getByRole('button', { name: 'Pisahkan dengan %%%', exact: true }).click();
   await expect(page.locator('.question-card')).toHaveCount(2);
   await expect(page.locator('.question-card').first()).toContainText('Use %%% in a sentence.');
-  await expect(page.locator('.question-card').last().locator('p')).toHaveText('');
+  await expect(page.locator('.question-card').last().locator('.question-content p')).toHaveText('');
 });
 
 test('pastes, splits, merges, undoes, and reopens a local rich-text draft', async ({
@@ -90,7 +89,6 @@ test('pastes, splits, merges, undoes, and reopens a local rich-text draft', asyn
     '<p><strong>1. Berapa hasil 12 × 3?</strong></p><p> A. 24</p><p> B. 36</p><p>%%%</p><p><em>2. Jelaskan jawabanmu.</em></p>',
     '1. Berapa hasil 12 × 3?\nA. 24\nB. 36\n%%%\n2. Jelaskan jawabanmu.',
   );
-  await page.getByRole('button', { name: 'Pisahkan dengan %%%', exact: true }).click();
   await expect(page.locator('.question-card')).toHaveCount(2);
   await expect(page.locator('.question-card strong')).toHaveText('1. Berapa hasil 12 × 3?');
   await expect(page.locator('.question-card em')).toHaveText('2. Jelaskan jawabanmu.');

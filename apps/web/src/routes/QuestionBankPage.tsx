@@ -4,6 +4,7 @@ import { A, useNavigate, useSearchParams } from '@solidjs/router';
 import { createMemo, createResource, createSignal, For, Show, onMount, onCleanup } from 'solid-js';
 import Plus from 'lucide-solid/icons/plus';
 import BookOpen from 'lucide-solid/icons/book-open';
+import Trash2 from 'lucide-solid/icons/trash';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import TextField from '../components/ui/TextField';
@@ -240,14 +241,16 @@ export default function QuestionBankPage() {
                       </Show>
                       <Button
                         variant={inTrash() ? 'secondary' : 'danger'}
+                        class={inTrash() ? undefined : 'draft-trash-button'}
+                        aria-label={inTrash() ? undefined : 'Pindahkan ke sampah'}
+                        title={inTrash() ? undefined : 'Pindahkan ke sampah'}
+                        aria-busy={busy() === draft.id}
                         disabled={Boolean(busy())}
                         onClick={() => void changeTrash(draft)}
                       >
-                        {busy() === draft.id
-                          ? 'Menyimpan…'
-                          : inTrash()
-                            ? 'Pulihkan draft'
-                            : 'Pindahkan ke sampah'}
+                        <Show when={inTrash()} fallback={<Trash2 size={18} aria-hidden="true" />}>
+                          {busy() === draft.id ? 'Menyimpan…' : 'Pulihkan draft'}
+                        </Show>
                       </Button>
                     </div>
                   </li>

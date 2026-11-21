@@ -26,6 +26,8 @@ function createSession() {
   const [mode, setMode] = createSignal<'login' | 'register'>('login');
   const [busy, setBusy] = createSignal(false);
   const [message, setMessage] = createSignal('');
+  const [destination, setDestination] = createSignal('');
+  const [loginRequired, setLoginRequired] = createSignal(false);
   const [schools, { refetch }] = createResource(() => user()?.$id || false, listSchools);
   createEffect(() => {
     if (!user() || schools.loading || schools.error) return;
@@ -42,9 +44,10 @@ function createSession() {
       setChecking(false);
     }
   }
-  function show(next: 'login' | 'register') {
+  function show(next: 'login' | 'register', required = false) {
     setMode(next);
     setMessage('');
+    setLoginRequired(required);
     setOpen(true);
   }
   async function logout() {
@@ -77,10 +80,13 @@ function createSession() {
     refresh,
     show,
     logout,
+    destination,
+    setDestination,
+    loginRequired,
   };
 }
 const SessionContext = createContext<ReturnType<typeof createSession>>();
-const useSession = () => useContext(SessionContext)!;
+export const useSchoolSession = () => useContext(SessionContext)!;
 
 export function SchoolSession(props: ParentProps) {
   const session = createSession();
@@ -98,7 +104,7 @@ export function SchoolSession(props: ParentProps) {
 }
 
 export function AccountControls() {
-  const s = useSession();
+  const s = useSchoolSession();
   return (
     <Show when={backend}>
       <div class="account-controls">
@@ -176,7 +182,7 @@ export function AccountControls() {
 }
 
 function AccountDialog() {
-  const s = useSession();
+  const s = useSchoolSession();
   const [visible, setVisible] = createSignal(false);
   let email!: HTMLInputElement,
     password!: HTMLInputElement,
@@ -248,6 +254,7 @@ function AccountDialog() {
       open={s.open()}
       onOpenChange={(value) => {
         if (!s.busy()) {
+          if (!value) s.setDestination('');
           s.setOpen(value);
           setVisible(false);
         }
@@ -268,14 +275,18 @@ function AccountDialog() {
                 ? 'Buat ruang sekolah'
                 : registering()
                   ? 'Daftar akun guru'
-                  : 'Selamat datang kembali'}
+                  : s.loginRequired()
+                    ? 'Masuk terlebih dahulu'
+                    : 'Selamat datang kembali'}
             </Dialog.Title>
             <Dialog.Description class="text-muted">
               {s.user()
                 ? 'Beri nama sekolah Anda untuk mulai mengelola soal dan ujian.'
                 : registering()
                   ? 'Buat akun untuk menyimpan soal dan mengelola ujian sekolah.'
-                  : 'Masuk untuk melanjutkan pekerjaan Anda di Octopus.'}
+                  : s.loginRequired()
+                    ? 'Masuk atau daftar akun untuk membuka fitur ruang kerja. Setelah masuk, Anda akan melanjutkan ke halaman yang dipilih.'
+                    : 'Masuk untuk melanjutkan pekerjaan Anda di Octopus.'}
             </Dialog.Description>
             <form class="school-login-form" onSubmit={submit} aria-busy={s.busy()}>
               <Show
@@ -375,7 +386,7 @@ function AccountDialog() {
 }
 
 export default function SchoolGate(props: ParentProps) {
-  const s = useSession();
+  const s = useSchoolSession();
   return (
     <Show
       when={s.user() && school()}

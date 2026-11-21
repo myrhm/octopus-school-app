@@ -2,7 +2,11 @@ import { createResource, createSignal, For, Show } from 'solid-js';
 import { call } from './client';
 import RichText from '../features/student-preview/RichText';
 import type { QuestionV1 } from '../features/question-import/question-contract';
-export function BankContents(props: { id: string; onSelection?: (ids: string[]) => void }) {
+export function BankContents(props: {
+  id: string;
+  selectedIds?: string[] | undefined;
+  onSelection?: (ids: string[]) => void;
+}) {
   const [set] = createResource(
     () => props.id,
     (id) => call<{ questions: QuestionV1[] }>('bank_detail', { id }),
@@ -11,7 +15,7 @@ export function BankContents(props: { id: string; onSelection?: (ids: string[]) 
     <Show when={!set.error} fallback={<p role="alert">Versi bank belum dapat dimuat.</p>}>
       <Show when={set()} fallback={<p>Memuat soal…</p>}>
         {(data) => {
-          let selected = data().questions.map((q) => q.id);
+          const selected = () => props.selectedIds ?? data().questions.map((q) => q.id);
           return (
             <For each={data().questions}>
               {(q, i) => (
@@ -20,12 +24,12 @@ export function BankContents(props: { id: string; onSelection?: (ids: string[]) 
                     <label>
                       <input
                         type="checkbox"
-                        checked
+                        checked={selected().includes(q.id)}
                         onChange={(e) => {
-                          selected = e.currentTarget.checked
-                            ? [...selected, q.id]
-                            : selected.filter((id) => id !== q.id);
-                          props.onSelection?.(selected);
+                          const next = e.currentTarget.checked
+                            ? [...selected().filter((id) => id !== q.id), q.id]
+                            : selected().filter((id) => id !== q.id);
+                          props.onSelection?.(next);
                         }}
                       />
                       Gunakan soal {i() + 1}

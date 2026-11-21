@@ -1,5 +1,5 @@
 import { grade, validAnswer, validQuestion } from './grading.js';
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash, randomUUID, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 const hash = (...values) =>
   createHash('sha256').update(JSON.stringify(values)).digest('hex').slice(0, 36);
 const query = (method, attribute, values) => JSON.stringify({ method, attribute, values });
@@ -134,38 +134,103 @@ export default async function ({ req, res, error }) {
       audit: edits.map(({ question, points, reason, at }) => ({ question, points, reason, at })),
     };
   }
+  async function finalizeExpired(exams) {
+    for (const exam of exams) {
+      for (const attempt of await list(hash('attempt', exam.rowId))) {
+        if (Date.now() < (attempt.deadline ?? Date.parse(exam.closes_at))) continue;
+        try {
+          await get(hash('submission', attempt.rowId));
+          continue;
+        } catch (e) {
+          if (e.status !== 404) throw e;
+        }
+        const latest = (await list(hash('progress', attempt.rowId))).sort(
+          (a, b) => b.revision - a.revision,
+        )[0];
+        await finalize(attempt.rowId, attempt, await examBank(exam), latest?.answers ?? {});
+      }
+    }
+  }
   async function handle() {
     if (req.headers['x-appwrite-trigger'] === 'schedule') {
-      for (const exam of await list('exam')) {
-        for (const attempt of await list(hash('attempt', exam.rowId))) {
-          if (Date.now() < (attempt.deadline ?? Date.parse(exam.closes_at))) continue;
-          try {
-            await get(hash('submission', attempt.rowId));
-            continue;
-          } catch (e) {
-            if (e.status !== 404) throw e;
-          }
-          const latest = (await list(hash('progress', attempt.rowId))).sort(
-            (a, b) => b.revision - a.revision,
-          )[0];
-          await finalize(attempt.rowId, attempt, await examBank(exam), latest?.answers ?? {});
-        }
-      }
+      await finalizeExpired(await list('exam'));
       return true;
+    }
+    if (input.action === 'exam_entry') {
+      const exam = await get(input.exam, 'exam');
+      if (exam.deleted_at) deny(404);
+      return { accessMode: exam.accessMode ?? (exam.restricted ? 'legacy' : 'open') };
     }
     if (input.action === 'start_exam') {
       const exam = await get(input.exam, 'exam');
       if (Date.now() < Date.parse(exam.opens_at) || Date.now() >= Date.parse(exam.closes_at))
         deny(403);
-      if (['paused', 'closed', 'archived'].includes(exam.state)) deny(403);
-      const participant = String(input.participant_name ?? '').trim();
-      if (!participant || participant.length > 100) deny(400);
+      if (exam.deleted_at || ['paused', 'closed', 'archived'].includes(exam.state)) deny(403);
+      let participant = String(input.participant_name ?? '').trim();
       const bank = await examBank(exam);
-      if (exam.restricted) {
-        await get(hash('credential', input.exam, input.code), hash('credentials', input.exam));
+      let credential;
+      let attempt;
+      const token = randomBytes(32).toString('base64url');
+      if (exam.accessMode === 'credentials') {
+        const participantId = String(input.participantId ?? '')
+          .trim()
+          .toUpperCase();
+        if (
+          !/^[A-Z0-9_-]{1,40}$/.test(participantId) ||
+          typeof input.password !== 'string' ||
+          input.password.length > 128
+        )
+          deny(401);
+        const rateGroup = hash(
+          'login-rate',
+          input.exam,
+          participantId,
+          Math.floor(Date.now() / 60000),
+        );
+        let rateAccepted = false;
+        for (let slot = 0; slot < 5; slot++) {
+          try {
+            await create(rateGroup, { at: Date.now() }, hash('login-slot', rateGroup, slot));
+            rateAccepted = true;
+            break;
+          } catch (e) {
+            if (e.status !== 409) throw e;
+          }
+        }
+        if (!rateAccepted) deny(429);
+        try {
+          credential = await get(
+            hash('credential-v2', input.exam, participantId),
+            hash('credentials', input.exam),
+          );
+        } catch (e) {
+          if (e.status !== 404) throw e;
+          deny(401);
+        }
+        if (
+          credential.revoked ||
+          !timingSafeEqual(
+            scryptSync(input.password, credential.salt, 32),
+            Buffer.from(credential.passwordHash, 'hex'),
+          )
+        )
+          deny(401);
+        participant = credential.name;
+        attempt = hash('credential-attempt', input.exam, participantId);
+        try {
+          const existing = await get(attempt, hash('attempt', input.exam));
+          if (existing.credentialVersion === credential.version && !existing.revoked) deny(409);
+        } catch (e) {
+          if (e.status !== 404) throw e;
+        }
+      } else {
+        if (!participant || participant.length > 100) deny(400);
+        if (exam.restricted)
+          await get(hash('credential', input.exam, input.code), hash('credentials', input.exam));
+        attempt = exam.restricted
+          ? hash('participant', hash('token', input.exam, input.code))
+          : hash('participant', token);
       }
-      const token = exam.restricted ? hash('token', input.exam, input.code) : randomUUID();
-      const attempt = hash('participant', token);
       let deadline = Math.min(
         Date.parse(exam.closes_at),
         Date.now() + (exam.minutes ?? 1440) * 60000,
@@ -174,13 +239,30 @@ export default async function ({ req, res, error }) {
       try {
         await create(
           hash('attempt', input.exam),
-          { exam: input.exam, participant, deadline },
+          {
+            exam: input.exam,
+            participant,
+            deadline,
+            ...(credential
+              ? { participantId: credential.participantId, credentialVersion: credential.version }
+              : {}),
+          },
           attempt,
         );
       } catch (e) {
         if (e.status !== 409 || !exam.restricted) throw e;
         const existing = await get(attempt, hash('attempt', input.exam));
-        if (existing.revoked || existing.locked || Date.now() >= existing.deadline) deny(403);
+        if (credential && existing.credentialVersion === credential.version && !existing.revoked)
+          deny(409);
+        if (existing.locked || Date.now() >= existing.deadline) deny(403);
+        if (credential)
+          await update(attempt, {
+            ...existing,
+            participant,
+            revoked: false,
+            credentialVersion: credential.version,
+          });
+        else if (existing.revoked) deny(403);
         deadline = existing.deadline;
         previous = (await list(hash('progress', attempt))).sort(
           (a, b) => b.revision - a.revision,
@@ -195,6 +277,11 @@ export default async function ({ req, res, error }) {
           if (e.status !== 404) throw e;
         }
       }
+      await create(
+        hash('sessions', input.exam),
+        { exam: input.exam, attemptId: attempt, credentialVersion: credential?.version },
+        hash('participant', token),
+      );
       return {
         attempt: token,
         answers: previous?.answers,
@@ -225,6 +312,12 @@ export default async function ({ req, res, error }) {
       let attempt;
       try {
         attempt = await get(attemptId);
+        if (attempt.attemptId) {
+          const session = attempt;
+          attemptId = session.attemptId;
+          attempt = await get(attemptId, hash('attempt', session.exam));
+          if (session.credentialVersion !== attempt.credentialVersion) deny(403);
+        }
       } catch (e) {
         if (e.status !== 404) throw e;
         attempt = await get(input.attempt);
@@ -233,7 +326,14 @@ export default async function ({ req, res, error }) {
       }
       await get(attemptId, hash('attempt', attempt.exam));
       const exam = await get(attempt.exam, 'exam');
-      if (attempt.revoked) deny(403);
+      if (exam.deleted_at || attempt.revoked) deny(403);
+      if (attempt.participantId) {
+        const credential = await get(
+          hash('credential-v2', attempt.exam, attempt.participantId),
+          hash('credentials', attempt.exam),
+        );
+        if (credential.revoked || credential.version !== attempt.credentialVersion) deny(403);
+      }
       if (input.action === 'resume_exam') {
         if (attempt.exam !== input.exam) deny(403);
         const bank = await examBank(exam),
@@ -402,6 +502,13 @@ export default async function ({ req, res, error }) {
         });
       }
       case 'schedule': {
+        if (input.accessMode != null && !['open', 'credentials'].includes(input.accessMode))
+          deny(400);
+        if (
+          input.passMark != null &&
+          (!Number.isFinite(input.passMark) || input.passMark < 0 || input.passMark > 100)
+        )
+          deny(400);
         if (
           input.minutes != null &&
           (!Number.isInteger(input.minutes) || input.minutes < 1 || input.minutes > 1440)
@@ -425,7 +532,15 @@ export default async function ({ req, res, error }) {
             user,
             bank_id: input.bank_id,
             questionIds: input.questionIds,
-            restricted: Boolean(input.restricted),
+            restricted: input.accessMode
+              ? input.accessMode === 'credentials'
+              : Boolean(input.restricted),
+            accessMode:
+              input.accessMode === 'credentials'
+                ? 'credentials'
+                : input.accessMode === 'open'
+                  ? 'open'
+                  : undefined,
             subject: String(input.subject ?? '').slice(0, 120),
             className: String(input.className ?? '').slice(0, 120),
             passMark: Math.min(100, Math.max(0, Number(input.passMark ?? 70))),
@@ -468,9 +583,129 @@ export default async function ({ req, res, error }) {
         );
         return true;
       }
+      case 'participants':
+      case 'create_participants':
+      case 'reset_participant':
+      case 'revoke_participant': {
+        const exam = await get(input.id, 'exam');
+        if (
+          exam.deleted_at ||
+          exam.user !== user ||
+          exam.school !== school ||
+          exam.accessMode !== 'credentials'
+        )
+          deny(403);
+        const group = hash('credentials', input.id);
+        if (input.action === 'participants')
+          return (await list(group)).map(({ participantId, name, revoked }) => ({
+            participantId,
+            name,
+            revoked: !!revoked,
+          }));
+        if (input.action === 'create_participants') {
+          if (
+            !Array.isArray(input.participants) ||
+            !input.participants.length ||
+            input.participants.length > 100
+          )
+            deny(400);
+          const seen = new Set();
+          const rows = input.participants.map((p) => ({
+            participantId: String(p.participantId ?? '')
+              .trim()
+              .toUpperCase(),
+            name: String(p.name ?? '').trim(),
+          }));
+          const existing = new Set((await list(group)).map((p) => p.participantId));
+          for (const p of rows) {
+            if (
+              !/^[A-Z0-9_-]{1,40}$/.test(p.participantId) ||
+              !p.name ||
+              p.name.length > 100 ||
+              seen.has(p.participantId) ||
+              existing.has(p.participantId)
+            )
+              deny(409);
+            seen.add(p.participantId);
+          }
+          // Persist one row at a time and return each successful credential even if a later write fails.
+          const created = [];
+          for (const p of rows) {
+            const password = randomBytes(9).toString('base64url');
+            const salt = randomBytes(16).toString('hex');
+            try {
+              await create(
+                group,
+                {
+                  ...p,
+                  salt,
+                  passwordHash: scryptSync(password, salt, 32).toString('hex'),
+                  version: randomUUID(),
+                  revoked: false,
+                },
+                hash('credential-v2', input.id, p.participantId),
+              );
+            } catch {
+              return { created, incomplete: true };
+            }
+            created.push({ ...p, password });
+          }
+          return { created, incomplete: false };
+        }
+        const participantId = String(input.participantId ?? '')
+          .trim()
+          .toUpperCase();
+        const id = hash('credential-v2', input.id, participantId);
+        const record = await get(id, group);
+        if (input.action === 'revoke_participant') {
+          await update(id, { ...record, revoked: true, version: randomUUID() });
+          try {
+            const aid = hash('credential-attempt', input.id, participantId);
+            const a = await get(aid, hash('attempt', input.id));
+            await update(aid, { ...a, revoked: true });
+          } catch (e) {
+            if (e.status !== 404) throw e;
+          }
+          return true;
+        }
+        const password = randomBytes(9).toString('base64url'),
+          salt = randomBytes(16).toString('hex');
+        await update(id, {
+          ...record,
+          revoked: false,
+          salt,
+          passwordHash: scryptSync(password, salt, 32).toString('hex'),
+          version: randomUUID(),
+        });
+        try {
+          const aid = hash('credential-attempt', input.id, participantId);
+          const a = await get(aid, hash('attempt', input.id));
+          await update(aid, { ...a, revoked: true });
+        } catch (e) {
+          if (e.status !== 404) throw e;
+        }
+        return { participantId, name: record.name, password };
+      }
+      case 'delete_exam': {
+        const exam = await get(input.id, 'exam');
+        if (exam.user !== user || exam.school !== school) deny(403);
+        await update(input.id, {
+          ...exam,
+          state: 'archived',
+          deleted_at: new Date().toISOString(),
+        });
+        return true;
+      }
       case 'credential': {
         const exam = await get(input.id, 'exam');
-        if (exam.user !== user || exam.school !== school || !exam.restricted) deny(403);
+        if (
+          exam.deleted_at ||
+          exam.user !== user ||
+          exam.school !== school ||
+          !exam.restricted ||
+          exam.accessMode === 'credentials'
+        )
+          deny(403);
         const code = randomUUID();
         await create(
           hash('credentials', input.id),
@@ -515,7 +750,10 @@ export default async function ({ req, res, error }) {
         return true;
       }
       case 'exams': {
-        const exams = (await list('exam')).filter((e) => e.school === school && e.user === user);
+        const exams = (await list('exam')).filter(
+          (e) => e.school === school && e.user === user && !e.deleted_at,
+        );
+        await finalizeExpired(exams);
         return Promise.all(
           exams.map(async (e) => {
             const results = new Map(
@@ -536,6 +774,7 @@ export default async function ({ req, res, error }) {
               events: await list(hash('events', e.rowId)),
               state: e.state ?? 'open',
               restricted: Boolean(e.restricted),
+              accessMode: e.accessMode,
               released: Boolean(e.released),
               opens_at: e.opens_at,
               closes_at: e.closes_at,

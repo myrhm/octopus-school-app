@@ -55,10 +55,8 @@ test('extracts, reorders by ID, chooses a key, and resumes with all data intact'
   await page.getByRole('button', { name: 'Ekstrak beberapa opsi', exact: true }).click();
   const cards = page.locator('.answer-option-card');
   await expect(cards).toHaveCount(3);
-  await expect(page.getByRole('textbox', { name: 'Isi kumpulan soal' })).not.toContainText(
-    'Bandung',
-  );
-  await expect(cards.nth(1).locator('strong')).toHaveText('Jakarta');
+  await expect(page.locator('.question-content')).not.toContainText('Bandung');
+  await expect(cards.nth(1).locator('.preview-bold')).toHaveText('Jakarta');
   await page.getByRole('radio', { name: /^Opsi B/ }).check();
   const id = await cards.nth(1).getAttribute('data-option-id');
   await page.getByRole('button', { name: 'Naikkan opsi B', exact: true }).click();
@@ -159,13 +157,17 @@ test('opens a legacy draft read-only and upgrades its storage version on the nex
 });
 
 test('keeps ambiguous option text untouched and explains the manual fallback', async ({ page }) => {
-  await setup(page, '<p>A. One</p><p>C. Three</p>');
-  await selectText(page, 'A. One', 'C. Three');
+  await setup(page, '<p>A. One</p><p>Unlabelled answer</p>');
+  await selectText(page, 'A. One', 'Unlabelled answer');
   await page.getByRole('button', { name: 'Ekstrak beberapa opsi', exact: true }).click();
-  await expect(page.getByText('Batas opsi ambigu.', { exact: false })).toBeVisible();
+  await expect(
+    page.getByText('Format beberapa opsi belum terbaca.', { exact: false }),
+  ).toBeVisible();
   await expect(page.locator('.answer-option-card')).toHaveCount(0);
   await expect(page.getByRole('textbox', { name: 'Isi kumpulan soal' })).toContainText('A. One');
-  await expect(page.getByRole('textbox', { name: 'Isi kumpulan soal' })).toContainText('C. Three');
+  await expect(page.getByRole('textbox', { name: 'Isi kumpulan soal' })).toContainText(
+    'Unlabelled answer',
+  );
 });
 
 test('keeps option controls accessible in both themes and mobile layout', async ({

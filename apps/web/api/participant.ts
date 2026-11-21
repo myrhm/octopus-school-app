@@ -4,6 +4,7 @@ type Request = IncomingMessage & { body?: unknown };
 type Config = { endpoint: string; project: string; secure: boolean };
 const allowed = new Set([
   'start_exam',
+  'exam_entry',
   'save_answers',
   'submit_exam',
   'released_result',
@@ -58,7 +59,8 @@ export async function participant(req: Request, res: ServerResponse, config: Con
       .map((value) => value.trim())
       .find((value) => value.startsWith(cookieName + '='))
       ?.slice(cookieName.length + 1);
-    if (input.action !== 'start_exam' && !cookie) return send(401, null);
+    if (!['start_exam', 'exam_entry'].includes(String(input.action)) && !cookie)
+      return send(401, null);
     const upstream = await fetch(config.endpoint + '/functions/octopus/executions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Appwrite-Project': config.project },

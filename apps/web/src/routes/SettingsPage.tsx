@@ -8,10 +8,12 @@ import Brand from '../components/Brand';
 
 export default function SettingsPage() {
   return (
-    <section class="page" aria-labelledby="page-title">
-      <p class="eyebrow">SESUAIKAN RUANG KERJA</p>
-      <h1 id="page-title">Pengaturan</h1>
-      <p class="intro">Pilih tampilan yang nyaman untuk Anda.</p>
+    <section class="page settings-page" aria-labelledby="page-title">
+      <header class="settings-heading">
+        <p class="eyebrow">SESUAIKAN RUANG KERJA</p>
+        <h1 id="page-title">Pengaturan</h1>
+        <p class="intro">Pilih tampilan yang nyaman untuk Anda.</p>
+      </header>
       <Show when={backend && school()}>
         <Members />
       </Show>

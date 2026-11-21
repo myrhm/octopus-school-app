@@ -95,7 +95,28 @@ test('school publication, credential resume, grading, audited corrections and de
     participant_name: 'Kedua',
   });
   await action('save_answers', { attempt: second.attempt, revision: 1, responses: { a: 'air' } });
+  assert.equal(
+    (await action('exams'))[0].attempts.find((a) => a.participant === 'Kedua').submitted_at,
+    undefined,
+  );
   t.mock.method(Date, 'now', () => second.deadline + 1);
+  const originalExam = rows.get(exam).payload;
+  rows.get(exam).payload = JSON.stringify({ ...JSON.parse(originalExam), user: 'another-teacher' });
+  assert.deepEqual(await action('exams'), []);
+  assert.equal(
+    (await action('released_result', { attempt: second.attempt }, 404)).error,
+    'Permintaan gagal.',
+  );
+  rows.get(exam).payload = originalExam;
+  const finalized = (await action('exams'))[0].attempts.find((a) => a.participant === 'Kedua');
+  assert.ok(finalized.submitted_at);
+  assert.equal(finalized.correct_count, 1);
+  assert.equal(finalized.answers.a, 'air');
+  const finalizedAt = finalized.submitted_at;
+  assert.equal(
+    (await action('exams'))[0].attempts.find((a) => a.participant === 'Kedua').submitted_at,
+    finalizedAt,
+  );
   await action('', {}, 200, 'schedule');
   assert.equal((await action('released_result', { attempt: second.attempt })).percent, 33);
 });

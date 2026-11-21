@@ -1,4 +1,5 @@
-import { call } from './client';
+import { call, school } from './client';
+import { compressImage } from './image-compression';
 export function mediaUrl(fileId: string) {
   if (!/^[a-zA-Z0-9._-]{1,36}$/.test(fileId)) return '';
   return (
@@ -10,8 +11,16 @@ export function mediaUrl(fileId: string) {
   );
 }
 export async function uploadMedia(file: File) {
-  if (file.size > 1048576) throw new Error('Ukuran gambar maksimal 1 MB.');
+  const schoolId = school();
+  if (!schoolId) throw new Error('Pilih sekolah sebelum mengunggah gambar.');
+  const compressed = await compressImage(file);
   let binary = '';
-  for (const byte of new Uint8Array(await file.arrayBuffer())) binary += String.fromCharCode(byte);
-  return call<string>('upload', { name: file.name, mime: file.type, content: btoa(binary) });
+  for (const byte of new Uint8Array(await compressed.arrayBuffer()))
+    binary += String.fromCharCode(byte);
+  return call<string>('upload', {
+    school: schoolId,
+    name: compressed.name,
+    mime: compressed.type,
+    content: btoa(binary),
+  });
 }

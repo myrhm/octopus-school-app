@@ -5,7 +5,48 @@ import StarterKit from '@tiptap/starter-kit';
 import { QuestionBlock, QuestionDocument } from './document';
 import { OptionAnchor } from './answer-options';
 
-export function questionExtensions() {
+export function questionExtensions(
+  renderOptions?: (host: HTMLElement, questionId: string) => () => void,
+) {
+  const questionBlock = renderOptions
+    ? QuestionBlock.extend({
+        addNodeView() {
+          return ({ node }) => {
+            const dom = document.createElement('section');
+            dom.className = 'question-card';
+            const contentDOM = document.createElement('div');
+            contentDOM.className = 'question-content';
+            const optionsHost = document.createElement('div');
+            optionsHost.className = 'question-answers-host';
+            optionsHost.contentEditable = 'false';
+            dom.append(contentDOM, optionsHost);
+            let questionId = String(node.attrs.id ?? '');
+            dom.dataset.questionId = questionId;
+            let dispose = questionId ? renderOptions(optionsHost, questionId) : undefined;
+            return {
+              dom,
+              contentDOM,
+              update(next) {
+                if (next.type !== node.type) return false;
+                const nextId = String(next.attrs.id ?? '');
+                if (nextId !== questionId) {
+                  dispose?.();
+                  questionId = nextId;
+                  dom.dataset.questionId = questionId;
+                  dispose = questionId ? renderOptions(optionsHost, questionId) : undefined;
+                }
+                return true;
+              },
+              stopEvent: (event) =>
+                event.target instanceof globalThis.Node && optionsHost.contains(event.target),
+              ignoreMutation: (mutation) =>
+                mutation.type !== 'selection' && !contentDOM.contains(mutation.target),
+              destroy: () => dispose?.(),
+            };
+          };
+        },
+      })
+    : QuestionBlock;
   return [
     StarterKit.configure({
       document: false,
@@ -17,7 +58,7 @@ export function questionExtensions() {
       heading: { levels: [2, 3] },
     }),
     QuestionDocument,
-    QuestionBlock,
+    questionBlock,
     OptionAnchor,
     Node.create({
       name: 'schoolImage',
