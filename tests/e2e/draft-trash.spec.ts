@@ -3,7 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 
 test('moves a draft to trash and restores its content after reload', async ({ page }) => {
   await page.goto('/bank-soal');
-  await page.getByRole('button', { name: 'Impor soal', exact: true }).click();
+  await page.getByRole('button', { name: 'Buat bank soal', exact: true }).click();
   await page.getByRole('textbox', { name: 'Nama draft' }).fill('Biologi');
   const editor = page.getByRole('textbox', { name: 'Isi kumpulan soal' });
   await editor.click();
@@ -37,7 +37,7 @@ test('an open editor cannot resurrect a draft moved to trash in another tab', as
   context,
 }) => {
   await page.goto('/bank-soal');
-  await page.getByRole('button', { name: 'Impor soal', exact: true }).click();
+  await page.getByRole('button', { name: 'Buat bank soal', exact: true }).click();
   const editor = page.getByRole('textbox', { name: 'Isi kumpulan soal' });
   await expect(editor).toBeVisible();
   const bank = await context.newPage();

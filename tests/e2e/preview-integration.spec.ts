@@ -4,7 +4,7 @@ test('previews real extracted options after reorder and reload without changing 
   page,
 }, info) => {
   await page.goto('/bank-soal');
-  await page.getByRole('button', { name: 'Impor soal', exact: true }).click();
+  await page.getByRole('button', { name: 'Buat bank soal', exact: true }).click();
   const editor = page.getByRole('textbox', { name: 'Isi kumpulan soal' });
   await editor.click();
   await editor.evaluate((element) => {
