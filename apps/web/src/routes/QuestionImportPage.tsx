@@ -1,3 +1,4 @@
+import { backend } from '../backend/client';
 import { A, useParams } from '@solidjs/router';
 import { createResource, Show, Suspense } from 'solid-js';
 import { loadDraft } from '../features/question-import/draft-store';
@@ -30,7 +31,11 @@ export default function QuestionImportPage() {
           fallback={
             <section class="page">
               <h1>Draft tidak ditemukan</h1>
-              <p>Draft lokal hanya tersedia pada browser tempat Anda membuatnya.</p>
+              <p>
+                {backend
+                  ? 'Periksa sekolah aktif dan akses draft Anda.'
+                  : 'Draft lokal hanya tersedia pada browser tempat Anda membuatnya.'}
+              </p>
               <p>Jika draft dipindahkan ke Sampah, pulihkan dahulu untuk membukanya.</p>
               <A href="/bank-soal?tampilan=sampah">Buka Sampah</A>
               <A href="/bank-soal">Kembali ke bank soal</A>

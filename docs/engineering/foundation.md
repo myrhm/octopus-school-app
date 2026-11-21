@@ -34,13 +34,13 @@ CI memuat install, format/lint/typecheck, tests, build, dan E2E pada Linux. Repo
 
 ## Environment dan deployment
 
-Tahap ini dapat berjalan tanpa `.env` atau akun layanan. Jangan menambahkan secret backend ke `VITE_*` karena variabel tersebut ditanam ke bundle browser. Konfigurasi Supabase diperkenalkan bersamaan dengan integrasinya dan template environment yang tervalidasi.
+Tahap ini dapat berjalan tanpa `.env` atau akun layanan. Jangan menambahkan secret backend ke `VITE_*` karena variabel tersebut ditanam ke bundle browser. Konfigurasi Appwrite diperkenalkan bersamaan dengan integrasinya dan template environment yang tervalidasi.
 
 Vite preview mendukung fallback SPA untuk pengujian lokal. Konfigurasi rewrite pada Vercel perlu ditambahkan dan diuji saat tahap deployment; keberhasilan reload lokal tidak membuktikan konfigurasi hosting production.
 
 ## Langkah berikutnya
 
-Setelah fondasi desain tahap 2, backend awal menyediakan Auth, sekolah/membership, bank soal, draft, Storage, dan RLS sebelum fitur impor disambungkan ke penyimpanan resmi.
+Setelah fondasi desain tahap 2, backend awal menyediakan Auth, sekolah/membership, bank soal, draft, Storage, dan permissions Appwrite sebelum fitur impor disambungkan ke penyimpanan resmi.
 
 ## Verifikasi lokal tahap 1 pada 20 November 2026
 

@@ -1,3 +1,4 @@
+import { backend } from '../backend/client';
 import { A, useNavigate, useSearchParams } from '@solidjs/router';
 import { createMemo, createResource, createSignal, For, Show, onMount, onCleanup } from 'solid-js';
 import FileInput from 'lucide-solid/icons/file-input';
@@ -78,7 +79,11 @@ export default function QuestionBankPage() {
         <div>
           <p class="eyebrow">PERSIAPAN PEMBELAJARAN</p>
           <h1 id="page-title">Bank soal</h1>
-          <p class="intro">Mulai dari draft lokal, lalu susun pertanyaan dari dokumen Anda.</p>
+          <p class="intro">
+            {backend
+              ? 'Susun pertanyaan dari draft sekolah Anda.'
+              : 'Mulai dari draft lokal, lalu susun pertanyaan dari dokumen Anda.'}
+          </p>
         </div>
         <div class="heading-actions">
           <A class="button" data-variant="secondary" href="/pratinjau-siswa/contoh">
@@ -125,7 +130,7 @@ export default function QuestionBankPage() {
           Draft hanya tersimpan di browser dan perangkat ini. Belum ada akun atau sinkronisasi
           antarperangkat.
         </p>
-        <Badge tone="info">Penyimpanan lokal</Badge>
+        <Badge tone="info">{backend ? 'Penyimpanan sekolah' : 'Penyimpanan lokal'}</Badge>
       </div>
       <Show when={error()}>
         <p class="save-error" role="alert">
@@ -157,7 +162,7 @@ export default function QuestionBankPage() {
           </div>
         }
       >
-        <Show when={!drafts.loading} fallback={<p role="status">Membaca draft lokal…</p>}>
+        <Show when={!drafts.loading} fallback={<p role="status">Membaca draft…</p>}>
           <Show
             when={filtered().length}
             fallback={
@@ -187,7 +192,9 @@ export default function QuestionBankPage() {
                 {(draft) => (
                   <li class="panel draft-list-item">
                     <div>
-                      <Badge>{inTrash() ? 'Di Sampah' : 'Draft lokal'}</Badge>
+                      <Badge>
+                        {inTrash() ? 'Di Sampah' : backend ? 'Draft sekolah' : 'Draft lokal'}
+                      </Badge>
                       <h2>
                         <Show when={!inTrash()} fallback={draft.title.trim() || 'Draft tanpa nama'}>
                           <A href={`/bank-soal/impor/${draft.id}`}>

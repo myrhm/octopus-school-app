@@ -1,3 +1,7 @@
+import ExamManager from '../backend/ExamManager';
+import ParticipantExam from '../backend/ParticipantExam';
+import SchoolGate from '../backend/SchoolGate';
+import { backend } from '../backend/client';
 import { Route, Router, useLocation } from '@solidjs/router';
 import { Show } from 'solid-js';
 import type { ParentProps } from 'solid-js';
@@ -13,7 +17,7 @@ import QuestionImportPage from '../routes/QuestionImportPage';
 import StudentPreviewPage from '../routes/StudentPreviewPage';
 import PreviewShell from '../features/student-preview/PreviewShell';
 
-function RouteShell(props: ParentProps) {
+function WorkspaceShell(props: ParentProps) {
   const location = useLocation();
   return (
     <Show
@@ -25,6 +29,23 @@ function RouteShell(props: ParentProps) {
   );
 }
 
+function RouteShell(props: ParentProps) {
+  const location = useLocation();
+  return (
+    <>
+      {backend && location.pathname.startsWith('/e/') ? (
+        props.children
+      ) : backend ? (
+        <SchoolGate>
+          <WorkspaceShell>{props.children}</WorkspaceShell>
+        </SchoolGate>
+      ) : (
+        <WorkspaceShell>{props.children}</WorkspaceShell>
+      )}
+    </>
+  );
+}
+
 export default function App() {
   return (
     <ThemeProvider>
@@ -33,9 +54,10 @@ export default function App() {
         <Route path="/bank-soal" component={QuestionBankPage} />
         <Route path="/bank-soal/impor/:id" component={QuestionImportPage} />
         <Route path="/pratinjau-siswa/:id" component={StudentPreviewPage} />
-        <Route path="/ujian" component={UpcomingPage} />
-        <Route path="/monitoring" component={UpcomingPage} />
-        <Route path="/nilai" component={UpcomingPage} />
+        <Route path="/ujian" component={backend ? ExamManager : UpcomingPage} />
+        <Route path="/e/:id" component={backend ? ParticipantExam : NotFoundPage} />
+        <Route path="/monitoring" component={backend ? ExamManager : UpcomingPage} />
+        <Route path="/nilai" component={backend ? ExamManager : UpcomingPage} />
         <Route path="/pengaturan" component={SettingsPage} />
         <Route path="/komponen" component={ComponentsPage} />
         <Route path="*404" component={NotFoundPage} />

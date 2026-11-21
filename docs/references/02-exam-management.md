@@ -5,7 +5,7 @@
 **Status:** Tambahan terhadap spesifikasi Bulk Question Import v1.0  
 **Frontend:** SolidJS + TypeScript  
 **Hosting:** Vercel  
-**Backend:** Supabase (PostgreSQL, Auth, Storage, Realtime)  
+**Backend:** Appwrite (Appwrite TablesDB, Auth, Storage, Realtime)  
 **Arsitektur:** Modular, API-first, Multi-tenant Ready
 
 ---
@@ -160,7 +160,7 @@ Contoh kredensial:
     Student ID: MATH8A-001
     Password: K7p9Q2vL
 
-ID merupakan identitas peserta untuk ujian, bukan harus sama dengan akun Supabase Auth atau nomor induk siswa.
+ID merupakan identitas peserta untuk ujian, bukan harus sama dengan akun Appwrite Account atau nomor induk siswa.
 
 ### Alur
 
@@ -485,7 +485,7 @@ Guru dapat melihat:
 
 Sediakan filter berdasarkan status peserta.
 
-Realtime dapat menggunakan Supabase Realtime atau mekanisme polling yang sesuai.
+Realtime dapat menggunakan Appwrite Realtime atau mekanisme polling yang sesuai.
 
 Event harus diterapkan dengan idempotency agar retry tidak menggandakan penghitung pelanggaran.
 
@@ -912,9 +912,9 @@ Contoh operasi:
     POST /attempts/{id}/submit
     GET  /attempts/{id}/result
 
-Endpoint ini merupakan kontrak konseptual. Implementasi dapat menggunakan Supabase Edge Functions dan RPC PostgreSQL.
+Endpoint ini merupakan kontrak konseptual. Implementasi dapat menggunakan Appwrite Functions dan operasi TablesDB yang menjaga konsistensi.
 
-Pastikan operasi bisnis sensitif divalidasi di backend, bukan hanya menggunakan RLS frontend-facing.
+Pastikan operasi bisnis sensitif divalidasi di backend, bukan hanya menggunakan permissions yang diperiksa klien.
 
 Credential verification, submit, perubahan status ujian, dan grading harus menggunakan otorisasi server yang tegas.
 

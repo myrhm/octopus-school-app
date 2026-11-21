@@ -1,3 +1,4 @@
+import { backend, call, school } from '../../backend/client';
 import type { JSONContent } from '@tiptap/core';
 import { emptyDocument } from './document';
 
@@ -44,7 +45,7 @@ function openDatabase(): Promise<IDBDatabase> {
   });
 }
 
-async function listRecords(): Promise<StoredDraft[]> {
+export async function listLocalRecords(): Promise<StoredDraft[]> {
   const db = await openDatabase();
   try {
     return await new Promise((resolve, reject) => {
@@ -61,6 +62,25 @@ async function listRecords(): Promise<StoredDraft[]> {
   }
 }
 
+async function listRecords(): Promise<StoredDraft[]> {
+  if (!backend) return listLocalRecords();
+  return (await call<StoredDraft[]>('drafts')).sort((a, b) =>
+    b.updatedAt.localeCompare(a.updatedAt),
+  );
+}
+async function writeRemote(record: StoredDraft, expected: number, schoolId: string) {
+  try {
+    await call('save', { record, expected, school: schoolId });
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 409) throw new DraftConflict();
+    throw error;
+  }
+}
+
+export async function importLocalRecord(record: StoredDraft) {
+  await writeRemote({ ...record, revision: 1 }, 0, school());
+}
+
 export async function listDrafts(): Promise<LocalDraft[]> {
   return (await listRecords()).filter((draft): draft is LocalDraft => !isTrashed(draft));
 }
@@ -70,6 +90,9 @@ export async function listTrashedDrafts(): Promise<TrashedDraft[]> {
 }
 
 async function loadRecord(id: string): Promise<StoredDraft | undefined> {
+  if (backend) {
+    return (await call<StoredDraft | null>('draft', { id })) ?? undefined;
+  }
   const db = await openDatabase();
   try {
     return await new Promise((resolve, reject) => {
@@ -105,6 +128,41 @@ export class DraftInTrash extends DraftConflict {
 }
 
 async function changeTrashState(id: string, revision: number, restore: boolean): Promise<void> {
+  if (backend) {
+    const schoolId = school();
+    const record = await loadRecord(id);
+    if (!record || record.revision !== revision || restore !== isTrashed(record))
+      throw new DraftConflict();
+    const updatedAt = new Date().toISOString();
+    if (isTrashed(record)) {
+      const { originalFormatVersion, deletedAt, ...draft } = record;
+      if (!deletedAt) throw new DraftConflict();
+      await writeRemote(
+        {
+          ...upgradeDraft({ ...draft, formatVersion: originalFormatVersion }),
+          revision: revision + 1,
+          updatedAt,
+        },
+        revision,
+        schoolId,
+      );
+    } else {
+      const draft = upgradeDraft(record);
+      await writeRemote(
+        {
+          ...draft,
+          formatVersion: 3,
+          originalFormatVersion: draft.formatVersion,
+          deletedAt: updatedAt,
+          updatedAt,
+          revision: revision + 1,
+        },
+        revision,
+        schoolId,
+      );
+    }
+    return;
+  }
   const db = await openDatabase();
   try {
     await new Promise<void>((resolve, reject) => {
@@ -170,6 +228,15 @@ export function restoreDraft(id: string, revision: number) {
 
 export async function saveDraft(draft: LocalDraft): Promise<LocalDraft> {
   const upgraded = upgradeDraft(draft);
+  if (backend) {
+    const saved = {
+      ...upgraded,
+      revision: draft.revision + 1,
+      updatedAt: new Date().toISOString(),
+    };
+    await writeRemote(saved, draft.revision, school());
+    return saved;
+  }
   const db = await openDatabase();
   try {
     return await new Promise((resolve, reject) => {

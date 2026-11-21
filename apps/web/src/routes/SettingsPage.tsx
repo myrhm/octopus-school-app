@@ -1,3 +1,4 @@
+import { backend } from '../backend/client';
 import ThemeSelect from '../components/ThemeSelect';
 import Modal from '../components/ui/Modal';
 import Brand from '../components/Brand';
@@ -31,8 +32,9 @@ export default function SettingsPage() {
             <Brand />
           </div>
           <p class="field-hint">
-            Draft soal tersimpan di browser ini. Akun sekolah, penyimpanan server, dan
-            penyelenggaraan ujian belum tersedia.
+            {backend
+              ? 'Draft tersimpan di akun sekolah Anda.'
+              : 'Draft soal tersimpan di browser ini. Akun sekolah, penyimpanan server, dan penyelenggaraan ujian belum tersedia.'}
           </p>
         </Modal>
       </section>

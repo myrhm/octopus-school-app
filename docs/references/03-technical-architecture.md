@@ -4,8 +4,8 @@
 **Architecture:** Modular Monolith, API-First, Multi-Client  
 **Package Manager:** pnpm  
 **Primary Frontend:** SolidJS + TypeScript + Vite  
-**Backend:** Supabase + PostgreSQL  
-**Deployment:** Vercel + Supabase  
+**Backend:** Appwrite Cloud  
+**Deployment:** Vercel + Appwrite  
 **Future Clients:** Tauri Desktop, Flutter Android  
 **AI Dependency:** None
 
@@ -33,7 +33,7 @@ Arsitektur harus memenuhi persyaratan berikut:
 
 Gunakan **Modular Monolith**, bukan microservices.
 
-Masing-masing modul mempunyai tanggung jawab yang jelas, tetapi seluruh sistem tetap berada dalam satu repository dan menggunakan satu Supabase project per environment.
+Masing-masing modul mempunyai tanggung jawab yang jelas, tetapi seluruh sistem tetap berada dalam satu repository dan menggunakan satu Appwrite project per environment.
 
 ---
 
@@ -57,20 +57,20 @@ Hindari penambahan framework SSR apabila tidak diperlukan.
 
 ## 2.2. Backend
 
-- Supabase PostgreSQL
-- Supabase Auth
-- Supabase Storage
-- Supabase Edge Functions
-- PostgreSQL Functions / RPC
-- Supabase Realtime
+- Appwrite TablesDB
+- Appwrite Account
+- Appwrite Storage
+- Appwrite Functions
+- Appwrite Functions dan operasi data atomik
+- Appwrite Realtime
 
 Distribusi tanggung jawab:
 
-**PostgreSQL**
+**Appwrite TablesDB**
 
-Data integrity, relasi, constraints, RLS, transaksi atomik, dan state transition yang harus konsisten.
+Data integrity, relasi, constraints, permissions Appwrite, transaksi atomik, dan state transition yang harus konsisten.
 
-**Edge Functions**
+**Appwrite Functions**
 
 HTTP API, pemeriksaan autentikasi/otorisasi, verifikasi kredensial peserta, orkestrasi domain, validasi request, rate limiting melalui mekanisme yang sesuai, dan respons terstruktur.
 
@@ -86,8 +86,8 @@ Sinkronisasi status peserta dan monitoring guru.
 
 - Vitest untuk unit tests.
 - Playwright untuk browser E2E.
-- PostgreSQL integration tests untuk database functions, constraints, dan RLS.
-- Supabase local environment untuk integration testing.
+- Appwrite integration tests untuk Functions, validasi data, dan permissions Appwrite.
+- Appwrite local environment untuk integration testing.
 - TypeScript typecheck dan ESLint.
 - Formatter konsisten melalui Prettier atau Biome; pilih satu konfigurasi utama.
 
@@ -139,8 +139,8 @@ Gunakan monorepo dengan pemisahan aplikasi, shared packages, backend, dan dokume
     │   ├── ui/
     │   └── config/
     │
-    ├── supabase/
-    │   ├── migrations/
+    ├── appwrite/
+    │   ├── setup/
     │   ├── functions/
     │   ├── tests/
     │   └── config.toml
@@ -228,7 +228,7 @@ Tidak boleh bergantung pada:
 - SolidJS.
 - Browser DOM.
 - Tauri.
-- Supabase SDK.
+- Appwrite SDK.
 - UI components.
 
 Domain package bukan sumber otoritatif untuk keamanan. Server harus tetap menjalankan validasinya sendiri.
@@ -407,7 +407,7 @@ Server state dan local editing state harus dibedakan.
 
 Kelompokkan operasi backend berdasarkan domain:
 
-    supabase/functions/
+    appwrite/function/
     │
     ├── exam-api/
     ├── participant-api/
@@ -417,7 +417,7 @@ Kelompokkan operasi backend berdasarkan domain:
 
 Shared function helpers dapat diletakkan di:
 
-    supabase/functions/_shared/
+    appwrite/function/_shared/
 
 Contohnya:
 
@@ -427,13 +427,13 @@ Contohnya:
     responses/
     permissions/
 
-Jangan membuat setiap CRUD sederhana sebagai Edge Function terpisah apabila fungsi tersebut aman dan lebih tepat ditangani melalui PostgreSQL serta RLS.
+Jangan membuat setiap CRUD sederhana sebagai Appwrite Function terpisah apabila fungsi tersebut aman dan lebih tepat ditangani melalui Appwrite TablesDB serta permissions Appwrite.
 
 Tetapi operasi sensitif harus melalui entry point server yang memiliki aturan otorisasi jelas.
 
-## 6.1. PostgreSQL RPC
+## 6.1. Appwrite Functions
 
-Gunakan RPC untuk operasi atomik.
+Gunakan Appwrite Functions dengan transaksi TablesDB atau operasi idempoten yang menjamin konsistensi saat permintaan bersamaan.
 
 Contoh:
 
@@ -445,11 +445,11 @@ Contoh:
     lock_exam_attempt()
     reopen_exam_attempt()
 
-RPC harus menerima identitas actor atau session yang tervalidasi dengan aman.
+Function harus menerima identitas actor atau session yang tervalidasi dengan aman.
 
 Hindari mempercayai `teacher_id`, `student_id`, atau `school_id` yang dikirim langsung oleh klien sebagai bukti otorisasi.
 
-Privileged functions harus mempunyai akses EXECUTE yang dibatasi, schema yang sesuai, dan validasi eksplisit.
+Function berhak istimewa memakai dynamic API key dengan scope minimum dan memvalidasi identitas serta izin pada setiap operasi.
 
 ## 6.2. Backend as Source of Truth
 
@@ -473,7 +473,7 @@ Frontend dapat melakukan pre-validation untuk UX, tetapi tidak boleh menjadi sat
 
 # 7. Database Architecture
 
-Gunakan PostgreSQL relational schema dengan UUID primary keys.
+Gunakan skema Appwrite TablesDB dengan ID stabil.
 
 Kelompok domain:
 
@@ -540,7 +540,7 @@ Gunakan constraints untuk mencegah:
 
 ## 8.1. Teacher Authentication
 
-Gunakan Supabase Auth untuk guru dan administrator.
+Gunakan Appwrite Account untuk guru dan administrator.
 
 Metode awal:
 
@@ -553,7 +553,7 @@ Jangan mengandalkan user-editable metadata untuk keputusan izin.
 
 ## 8.2. Student Authentication
 
-Untuk MVP, siswa tidak perlu mempunyai akun Supabase Auth permanen.
+Untuk MVP, siswa tidak perlu mempunyai akun Appwrite Account permanen.
 
 Dukung dua mode:
 
@@ -584,9 +584,9 @@ Jangan mengandalkan localStorage sebagai pengamanan token peserta.
 
 Untuk web, gunakan transport sesi yang sesuai, seperti Secure HttpOnly cookies apabila arsitektur domain dan CORS mendukungnya. Pada native client, gunakan secure storage yang sesuai platform.
 
-## 8.4. RLS
+## 8.4. permissions Appwrite
 
-Aktifkan RLS pada seluruh tabel yang diekspos melalui Data API.
+Atur permissions pada tabel, baris, bucket, dan file. Periksa membership Team beserta role guru/admin di Function sebelum mengakses data dengan API key.
 
 Guru hanya boleh mengakses resource sekolah yang menjadi kewenangannya.
 
@@ -614,7 +614,7 @@ Contoh:
     /v1/attempts/{attemptId}/answers
     /v1/attempts/{attemptId}/submit
 
-Untuk MVP, endpoint dapat diimplementasikan melalui Edge Functions dengan routing internal.
+Untuk MVP, endpoint dapat diimplementasikan melalui Appwrite Functions dengan routing internal.
 
 Dokumentasikan operasi dalam `contracts/openapi.yaml`.
 
@@ -846,7 +846,7 @@ Guru dapat melihat nilai sebelum dirilis kepada siswa.
 
 # 14. Realtime Monitoring
 
-Gunakan Supabase Realtime untuk pembaruan dashboard yang tidak harus mempunyai jaminan delivery mutlak.
+Gunakan Appwrite Realtime untuk pembaruan dashboard yang tidak harus mempunyai jaminan delivery mutlak.
 
 Contoh:
 
@@ -856,7 +856,7 @@ Contoh:
 - Peserta terkunci.
 - Pengawas membuka kembali sesi.
 
-Monitoring event permanen disimpan di PostgreSQL.
+Monitoring event permanen disimpan di Appwrite TablesDB.
 
 Realtime hanya merupakan mekanisme notifikasi perubahan.
 
@@ -872,7 +872,7 @@ Jangan mengartikan heartbeat yang terputus sebagai bukti kecurangan.
 
 Gunakan defense in depth:
 
-- Supabase RLS.
+- Appwrite permissions Appwrite.
 - Authorization server.
 - Validasi request.
 - Rate limiting.
@@ -998,7 +998,7 @@ Gunakan environment terpisah:
     staging
     production
 
-Minimal staging dan production harus menggunakan Supabase project berbeda untuk mengurangi risiko perubahan development merusak data nyata.
+Minimal staging dan production harus menggunakan Appwrite project berbeda untuk mengurangi risiko perubahan development merusak data nyata.
 
 ## 17.1. Vercel
 
@@ -1008,11 +1008,11 @@ Sediakan environment variables yang sesuai.
 
 Public frontend variables hanya boleh memuat nilai yang aman untuk dipublikasikan.
 
-## 17.2. Supabase
+## 17.2. Appwrite
 
-Gunakan migrations untuk versioning database schema.
+Versikan provisioning database, tabel, kolom, indeks, permissions, bucket, dan konfigurasi Functions.
 
-Edge Functions dan database migrations harus dipromosikan secara terkendali antar-environment.
+Appwrite Functions dan perubahan skema TablesDB harus dipromosikan secara terkendali antar-environment.
 
 Jangan melakukan perubahan schema production tanpa migrasi yang terdokumentasi.
 
@@ -1049,7 +1049,7 @@ Fokus:
 
 Fokus:
 
-- RLS.
+- permissions Appwrite.
 - Teacher authorization.
 - Credential verification.
 - Exam start.
@@ -1104,7 +1104,7 @@ Coding agent harus mengikuti aturan berikut:
 5. Backend merupakan sumber kebenaran untuk aturan ujian.
 6. API contract harus diperbarui ketika request atau response berubah.
 7. Perubahan database wajib menggunakan migration.
-8. Setiap tabel terekspos wajib diperiksa RLS dan privileges-nya.
+8. Setiap tabel terekspos wajib diperiksa permissions dan scope akses server-nya.
 9. Jangan memasukkan secret backend ke frontend.
 10. Jangan menggunakan `any` tanpa alasan yang terdokumentasi.
 11. Jangan melakukan silent failure pada operasi penyimpanan jawaban.
@@ -1127,10 +1127,10 @@ Coding agent harus mengikuti aturan berikut:
 - Tailwind.
 - Routing.
 - Shared packages.
-- Supabase initialization.
+- Appwrite initialization.
 - Environment configuration.
 - Authentication.
-- Database migrations.
+- Provisioning skema Appwrite.
 - Testing setup.
 - CI.
 
@@ -1207,13 +1207,13 @@ Fondasi Octopus dinyatakan siap ketika:
 
 - Web app berjalan melalui pnpm.
 - Deployment Vercel berhasil.
-- Supabase Auth dan backend API terhubung.
+- Appwrite Account dan backend API terhubung.
 - Struktur monorepo tidak mempunyai circular dependency.
 - Question domain terpisah dari UI.
 - Exam rules berjalan di server.
 - API contract tersedia.
-- Database migrations dapat dijalankan ulang pada environment baru.
-- RLS dan tenant isolation lulus pengujian.
+- Provisioning skema Appwrite dapat dijalankan ulang pada environment baru.
+- permissions Appwrite dan tenant isolation lulus pengujian.
 - Unit tests dan typecheck berjalan.
 - API dapat digunakan oleh klien selain SolidJS.
 - Tidak ada ketergantungan arsitektural yang mengharuskan Tauri atau Flutter mengimplementasikan ulang backend.
