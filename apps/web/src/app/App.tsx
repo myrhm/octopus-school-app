@@ -1,3 +1,5 @@
+import ExamManager from '../backend/ExamManager';
+import ParticipantExam from '../backend/ParticipantExam';
 import SchoolGate from '../backend/SchoolGate';
 import { backend } from '../backend/client';
 import { Route, Router, useLocation } from '@solidjs/router';
@@ -52,9 +54,10 @@ export default function App() {
         <Route path="/bank-soal" component={QuestionBankPage} />
         <Route path="/bank-soal/impor/:id" component={QuestionImportPage} />
         <Route path="/pratinjau-siswa/:id" component={StudentPreviewPage} />
-        <Route path="/ujian" component={UpcomingPage} />
-        <Route path="/monitoring" component={UpcomingPage} />
-        <Route path="/nilai" component={UpcomingPage} />
+        <Route path="/ujian" component={backend ? ExamManager : UpcomingPage} />
+        <Route path="/e/:id" component={backend ? ParticipantExam : NotFoundPage} />
+        <Route path="/monitoring" component={backend ? ExamManager : UpcomingPage} />
+        <Route path="/nilai" component={backend ? ExamManager : UpcomingPage} />
         <Route path="/pengaturan" component={SettingsPage} />
         <Route path="/komponen" component={ComponentsPage} />
         <Route path="*404" component={NotFoundPage} />
@@ -62,4 +65,3 @@ export default function App() {
     </ThemeProvider>
   );
 }
-
