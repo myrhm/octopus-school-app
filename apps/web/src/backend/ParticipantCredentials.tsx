@@ -242,16 +242,15 @@ export default function ParticipantCredentials(props: { examId: string }) {
               </Button>
               <Button
                 variant="secondary"
-                onClick={() =>
+                onClick={() => {
+                  const rows = credentials();
                   void action(async () => {
                     await navigator.clipboard.writeText(
-                      credentials()
-                        .map((p) => `${p.participantId}\t${p.name}\t${p.password}`)
-                        .join('\n'),
+                      rows.map((p) => `${p.participantId}\t${p.name}\t${p.password}`).join('\n'),
                     );
                     setMessage('Kredensial disalin.');
-                  })
-                }
+                  });
+                }}
               >
                 Salin semua
               </Button>
@@ -314,6 +313,7 @@ export default function ParticipantCredentials(props: { examId: string }) {
                   variant="secondary"
                   disabled={busy()}
                   onClick={() => {
+                    const examId = props.examId;
                     if (
                       window.confirm(
                         'Reset password ' +
@@ -324,7 +324,7 @@ export default function ParticipantCredentials(props: { examId: string }) {
                       void action(async () => {
                         reveal([
                           await call<Participant>('reset_participant', {
-                            id: props.examId,
+                            id: examId,
                             participantId: p.participantId,
                           }),
                         ]);
@@ -338,6 +338,7 @@ export default function ParticipantCredentials(props: { examId: string }) {
                   variant="ghost"
                   disabled={busy() || p.revoked}
                   onClick={() => {
+                    const examId = props.examId;
                     if (
                       window.confirm(
                         'Cabut akses ' +
@@ -347,7 +348,7 @@ export default function ParticipantCredentials(props: { examId: string }) {
                     )
                       void action(async () => {
                         await call('revoke_participant', {
-                          id: props.examId,
+                          id: examId,
                           participantId: p.participantId,
                         });
                         setCredentials((rows) =>

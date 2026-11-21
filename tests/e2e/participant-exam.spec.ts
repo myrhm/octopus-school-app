@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+test.use({ baseURL: `http://127.0.0.1:${Number(process.env.OCTOPUS_E2E_PORT ?? 5174) + 1}` });
+
 test('participant joins without teacher login, sees images, resumes and submits', async ({
   page,
 }) => {
@@ -37,6 +39,7 @@ test('participant joins without teacher login, sees images, resumes and submits'
   let started = false;
   await page.route('**/api/participant', async (route) => {
     const body = route.request().postDataJSON();
+    if (body.action === 'exam_entry') return route.fulfill({ json: { accessMode: 'open' } });
     if (body.action === 'resume_exam' && !started) return route.fulfill({ status: 401, json: {} });
     if (body.action === 'start_exam') {
       expect(body.participant_name).toBe('Siswa Uji');
